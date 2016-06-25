@@ -1,0 +1,57 @@
+{% extends "base_site.html" %}
+{% load i18n %}
+
+{% block title %}Client {% trans 'OAuth 2.0 for Web Server Application' %}{% endblock %}
+
+
+{% block breadcrumb %}
+    <ol class="breadcrumb">
+        <li><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+        <li class="active">{% trans 'About me' %}</li>
+    </ol>
+{% endblock %}
+
+
+{% block right_content %}
+    <h3>{% trans 'User Information from Web App Log in' %}</h3>
+
+    {% if userinfo_endpoint %}
+        <p><a href="{{ userinfo_endpoint }}">userinfo_endpoint</a></p>
+    {% endif %}
+
+    {% if calenderlist %}
+        <p><a href="{{ calenderlist }}">calenderlist</a></p>
+    {% endif %}
+
+
+    <table class="table table-condensed">
+        <tr>
+            <th>Key</th>
+            <th>Value</th>
+        </tr>
+        {% for key, value in userinfo.items %}
+            <tr>
+                <td>{{ key }}</td>
+                <td>
+                    {% if key == 'picture' %}
+                        {% if value.url %}
+                            <image src="{% if value.url %}{{ value.url }}{% else %}{{ value }}{% endif %}" width="100px"/>
+                        {% endif %}
+                    {% elif key == 'applications' %}
+                        <ul>
+                            {% for uuid, app in value.items %}
+                                <li><a href="{{ app.links.app.href }}">{{ app.links.app.title }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    {% elif value|slice:"7" == 'http://' or value|slice:"8" == 'https://' %}
+                        <a href="{{ value }}">{{ value }}</a>
+                    {% else %}
+                        {{ value }}
+                    {% endif %}
+                <td>
+            </tr>
+        {% endfor %}
+    </table>
+
+{% endblock right_content %}
+

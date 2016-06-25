@@ -1,0 +1,7 @@
+django
+gunicorn
+httplib2
+pillow
+psycopg2
+sorl-thumbnail
+PyOpenSSL
