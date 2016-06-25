@@ -1,8 +1,2 @@
-.project
-.pydevproject
-*.pyc
-.settings
 logs
-.settings
-.idea
 temp
