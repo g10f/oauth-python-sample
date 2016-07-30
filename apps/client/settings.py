@@ -174,7 +174,7 @@ else:
     DEFAULT_FROM_EMAIL = 'webmaster@dwbn.org'
     LOGGING_LEVEL = 'INFO'
 
-LOGGING_HANDLERS = ['mail_admins', 'error', ]
+LOGGING_HANDLERS = ['error', ]
 if DEBUG:
     LOGGING_HANDLERS += ['debug', 'console']
 
@@ -232,7 +232,7 @@ LOGGING = {
     },
     'loggers': {
         'django.request': {
-            'handlers': ['mail_admins'],
+            'handlers': ['error'],
             'level': 'ERROR',
             'propagate': True,
         },
