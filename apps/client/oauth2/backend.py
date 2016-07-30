@@ -86,8 +86,7 @@ def get_tokens_from_code(client, code, redirect_uri, http=None):
 
     id_token_content = None
     if 'id_token' in content:
-        # certs = client.identity_provider.certs
-        # Don't verify with certs, because we got the id_token directly from the id_provider via ssl
+        # Don't need to verify with certs, because we got the id_token directly from the id_provider via ssl
         id_token_content = verify_signed_jwt_with_certs(content['id_token'], certs=client.identity_provider.certs, audience=client.client_id)
         id_token_content['raw'] = content['id_token']
         if 'roles' in id_token_content:

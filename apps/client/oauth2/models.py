@@ -80,18 +80,6 @@ class IdentityProvider(models.Model):
             self._certs = json.loads(content.decode('utf-8'))
         return self._certs
 
-    @property
-    def jwks(self):
-        http = httplib2.Http(disable_ssl_certificate_validation=settings.DISABLE_SSL_CERTIFICATE_VALIDATION, cache=cache)
-        self.jwks_uri = 'http://localhost:8000/oauth2/jwks/'
-        if not self.jwks_uri:
-            return None
-
-        if not hasattr(self, '_jwks'):
-            content = http.request(self.jwks_uri)[1]
-            self._jwks = json.loads(content)
-        return self._jwks
-
     def __str__(self):
         return "%s" % self.name
 

@@ -20,6 +20,8 @@ import logging
 import time
 import json
 import sys
+import six
+import struct
 
 if sys.version_info > (3,):
     long = int
@@ -346,36 +348,42 @@ def parse_jwt(jwt):
     return parsed, signed, signature
 
 
-def unpack_bigint(b):
-    b = bytearray(b)  # in case you're passing in a bytes/str
-    return long(sum((1 << (bi * 8)) * bb for (bi, bb) in enumerate(b)))
+def intarr2long(arr):
+    return int(''.join(["%02x" % byte for byte in arr]), 16)
+
+
+def base64_to_long(data):
+    if isinstance(data, six.text_type):
+        data = data.encode("ascii")
+
+    # urlsafe_b64decode will happily convert b64encoded data
+    _d = base64.urlsafe_b64decode(bytes(data) + b'==')
+    return intarr2long(struct.unpack('%sB' % len(_d), _d))
 
 
 def verify_signature(signed, signature, certs):
     # Check signature.
-
     verified = False
-    """
-    jwks = certs
-    for jwk in jwks['keys']:
-        n = unpack_bigint(base64.b64decode(jwk['n']))
-        e = unpack_bigint(base64.b64decode(jwk['e']))
-        verifier = PyCryptoVerifier.from_numbers(n, e)
-        if (verifier.verify(str(signed), signature)):
-            verified = True
-            break
-    """
-    for (keyname, pem) in certs.items():  # @UnusedVariable
-        if pem.startswith('-----BEGIN PUBLIC'):
-            verifier = PyCryptoVerifier.from_string(pem, False)
-        elif pem.startswith('-----BEGIN CERTIFICATE'):
-            verifier = OpenSSLVerifier.from_string(pem, True)
-        else:
-            raise AppIdentityError('Invalid pem: %s' % pem)
+    if 'keys' in certs:
+        for cert in certs['keys']:
+            n = base64_to_long(cert['n'])
+            e = base64_to_long(cert['e'])
+            verifier = PyCryptoVerifier.from_numbers(long(n), long(e))
+            if verifier.verify(str(signed), signature):
+                verified = True
+                break
+    else:
+        for (keyname, pem) in certs.items():  # @UnusedVariable
+            if pem.startswith('-----BEGIN PUBLIC'):
+                verifier = PyCryptoVerifier.from_string(pem, False)
+            elif pem.startswith('-----BEGIN CERTIFICATE'):
+                verifier = OpenSSLVerifier.from_string(pem, True)
+            else:
+                raise AppIdentityError('Invalid pem: %s' % pem)
 
-        if verifier.verify(str(signed), signature):
-            verified = True
-            break
+            if verifier.verify(str(signed), signature):
+                verified = True
+                break
 
     if not verified:
         b64_signature = _urlsafe_b64encode(signature)
