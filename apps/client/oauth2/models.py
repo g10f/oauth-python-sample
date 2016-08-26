@@ -336,6 +336,16 @@ def update_roles(user, roles):
         user.save()
 
 
+def map_data(defaults, data):
+    for (key, value) in data.items():
+        name_mapping = _name_mapping.get(key)
+        if name_mapping:
+            if hasattr(name_mapping, '__call__'):
+                name_mapping(defaults, value)
+            else:
+                defaults[name_mapping] = value
+
+
 _name_mapping = {
     'id': 'uuid',
     'sub': 'uuid',
@@ -343,6 +353,7 @@ _name_mapping = {
     'given_name': 'first_name',
     'family_name': 'last_name',
     'email': 'email',
+    'access_token': map_data,
     'vw_id': 'uuid'
 }
 
@@ -350,10 +361,7 @@ _name_mapping = {
 def update_user(client, data):
     identity_provider = client.identity_provider
     defaults = {'email': '', 'is_active': True}  # default blank email for not null db constraint
-    for (keyname, value) in data.items():
-        name = _name_mapping.get(keyname)
-        if name:
-            defaults[name] = value
+    map_data(defaults, data)
 
     defaults['unique_name'] = "%s.%s" % (identity_provider, defaults['uuid'])
     # create or update user
