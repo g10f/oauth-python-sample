@@ -44,7 +44,7 @@ class OAuth2Error(StandardError):
         self.state = state
 
     def __unicode__(self):
-        return u'error: %s, description: %s' % (self.error, self.description)
+        return u'error: %s, description: %s' % (self.error, self.message)
 
 
 def get_tokens_from_code(client, code, redirect_uri, http=None):
