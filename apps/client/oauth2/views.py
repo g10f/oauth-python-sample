@@ -214,7 +214,7 @@ class UserInfoClientView(TemplateView):
                 'userinfo_endpoint': client.identity_provider.userinfo_endpoint,
                 'picture_endpoint': client.identity_provider.picture_endpoint
             }
-            uri = get_oauth2_authentication_uri(client, response_type='token', redirect_uri=redirect_uri, data=data)
+            uri = get_oauth2_authentication_uri(client, response_type='id_token token', redirect_uri=redirect_uri, data=data)
             authentications.append({'name': client.identity_provider.name, 'uri': uri})
 
         context['authentications'] = authentications
