@@ -364,6 +364,8 @@ def update_user(client, data):
     map_data(defaults, data)
 
     defaults['unique_name'] = "%s.%s" % (identity_provider, defaults['uuid'])
+    if not 'username' in defaults:
+        defaults['username'] = defaults['unique_name']
     # create or update user
     user = User.objects.get_or_create(uuid=defaults['uuid'], identity_provider=identity_provider, defaults=defaults)[0]
     update_object_from_dict(user, defaults)

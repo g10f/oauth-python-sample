@@ -53,14 +53,14 @@ def get_state(request, max_age=MAX_AGE):
     try:
         data = json.loads(_urlsafe_b64decode(state).decode('utf-8'))
     except Exception as e:
-        raise OAuth2Error('invalid_state', "State '%s' can't be load in to JSON. '%s'" % (state, e))
+        raise OAuth2Error("State '%s' can't be load in to JSON. '%s'" % (state, e), 'invalid_state')
     
     try:
         nonce = Nonce.objects.filter(value=data.get('nonce'), client=data.get('client')).latest()
         # delete the nonce if used once
         nonce.delete()
     except ObjectDoesNotExist:
-        raise OAuth2Error('invalid_state', "Nonce %s for provider %s not found." % (data.get('nonce'), data.get('provider')))
+        raise OAuth2Error("Nonce %s for provider %s not found." % (data.get('nonce'), data.get('provider')), 'invalid_state')
 
     age = now() - nonce.timestamp
     max_age = timedelta(seconds=max_age)
@@ -154,17 +154,20 @@ class UserInfoView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(UserInfoView, self).get_context_data(**kwargs)
-        
-        user = self.request.user
-        access_token = get_access_token(user)
-        
-        userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))        
-        # update_user(access_token.client, userinfo, 'userinfo')
-        
-        userinfo_endpoint = replace_or_add_query_param(access_token.client.identity_provider.userinfo_endpoint, 'access_token', access_token.token)
-        context['userinfo'] = userinfo
-        context['userinfo_endpoint'] = userinfo_endpoint
-        context['calenderlist'] = replace_or_add_query_param("https://www.googleapis.com/calendar/v3/users/me/calendarList", 'access_token', access_token.token)
+        try:
+            user = self.request.user
+            access_token = get_access_token(user)
+
+            userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
+            userinfo_endpoint = replace_or_add_query_param(access_token.client.identity_provider.userinfo_endpoint, 'access_token', access_token.token)
+
+            # update_user(access_token.client, userinfo, 'userinfo')
+            context['userinfo'] = userinfo
+            context['userinfo_endpoint'] = userinfo_endpoint
+            context['calenderlist'] = replace_or_add_query_param("https://www.googleapis.com/calendar/v3/users/me/calendarList", 'access_token', access_token.token)
+
+        except Exception as e:
+            context['error'] = e.message
 
         return context
 
@@ -242,7 +245,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
         if code:            
             # oauth2 session management
-            session_state = request.GET.get('session_state')
+            session_state = request.GET.get('session_state', '')
             next_url = state['next']
             
             client = Client.objects.get(id=state['client'])
@@ -275,7 +278,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             auth_logout(request)
             next_url = state.get('next')
             if next_url:
-                next_url = url_update(next_url, {'error': e.error, 'description': e.description})
+                next_url = url_update(next_url, {'error': e.error, 'description': e.message})
                 return HttpResponseRedirect(next_url)
             
         return render(request, 'oauth2/error.html', context={'error': e})

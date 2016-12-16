@@ -11,7 +11,7 @@ from django.utils.http import urlencode
 from django.utils.six.moves.urllib.parse import urlsplit, parse_qsl, urlunsplit
 from django.utils.timezone import now
 
-from client.oauth2.crypt import verify_signed_jwt_with_certs
+from client.oauth2.crypt import verify_signed_jwt_with_certs, parse_jwt
 from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken
 
 logger = logging.getLogger(__name__)
@@ -35,12 +35,12 @@ def url_update(url, param_dict):
     return urlunsplit((scheme, netloc, path, query, fragment))
 
 
-class OAuth2Error(Exception):
+class OAuth2Error(StandardError):
     error = {'error': None}
 
-    def __init__(self, error, description=None, state=None):
+    def __init__(self, message, error, state=None):
+        super(StandardError, self).__init__(message)
         self.error = error
-        self.description = description
         self.state = state
 
     def __unicode__(self):
@@ -72,9 +72,9 @@ def get_tokens_from_code(client, code, redirect_uri, http=None):
         content = json.loads(content)
 
     if content.get('error'):
-        description = content.get('error_description')
+        message = content.get('error_description')
         error = content.get('error')
-        raise OAuth2Error(error, description)
+        raise OAuth2Error(message, error)
     
     expires_in = content.get('expires_in', 3600)  # default 1 hour
     access_token = AccessToken(
@@ -87,7 +87,10 @@ def get_tokens_from_code(client, code, redirect_uri, http=None):
     id_token_content = None
     if 'id_token' in content:
         # Don't need to verify with certs, because we got the id_token directly from the id_provider via ssl
-        id_token_content = verify_signed_jwt_with_certs(content['id_token'], certs=client.identity_provider.certs, audience=client.client_id)
+        if client.identity_provider.certs_uri:
+            id_token_content = verify_signed_jwt_with_certs(content['id_token'], certs=client.identity_provider.certs, audience=client.client_id)
+        else:
+            id_token_content = parse_jwt(content['id_token'])[0]
         id_token_content['raw'] = content['id_token']
         if 'roles' in id_token_content:
             id_token_content['roles'] = id_token_content['roles'].split()
@@ -123,9 +126,9 @@ def refresh_access_token(access_token, http=None):
         content = json.loads(content)
 
     if content.get('error'):
-        description = content.get('error_description')
+        message = content.get('error_description')
         error = content.get('error')
-        raise OAuth2Error(error, description)
+        raise OAuth2Error(message, error)
 
     expires_in = content.get('expires_in', 3600) 
     access_token.token = content['access_token']
@@ -148,6 +151,9 @@ def get_access_token(user):
 def get_userinfo(access_token, uuid=None, http=None):
     identity_provider = access_token.client.identity_provider
     userinfo_endpoint = identity_provider.userinfo_endpoint
+    if not userinfo_endpoint:
+        raise OAuth2Error("no userinfo endpoint configured", "no_userinfo_endpoint")
+
     if uuid:
         userinfo_endpoint = userinfo_endpoint.replace('me', uuid)
     
@@ -165,7 +171,7 @@ def get_userinfo(access_token, uuid=None, http=None):
     resp, content = http.request(userinfo_endpoint, headers=headers)
         
     if resp.status != 200:
-        raise OAuth2Error("invalid_response", resp)
+        raise OAuth2Error(resp, "invalid_response")
     
     userinfo = json.loads(content.decode('utf-8'))
     return userinfo
@@ -184,7 +190,7 @@ class OAuth2Backend(ModelBackend):
         """ 
         
         # TODO: update user from get_userinfo 
-        if id_token_content and 'name' in id_token_content:
+        if id_token_content: #  and 'name' in id_token_content:
             userinfo = id_token_content
         else:
             userinfo = get_userinfo(access_token, http=http)
