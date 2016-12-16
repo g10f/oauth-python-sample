@@ -171,7 +171,8 @@ INSTALLED_APPS = (
 if DEBUG:
     LOGGING_LEVEL = 'DEBUG'
 else:
-    DEFAULT_FROM_EMAIL = 'webmaster@dwbn.org'
+    DEFAULT_FROM_EMAIL = 'webmaster@g10f.de'
+    SERVER_EMAIL = 'noreply@g10f.de'
     LOGGING_LEVEL = 'INFO'
 
 LOGGING_HANDLERS = ['error', ]
