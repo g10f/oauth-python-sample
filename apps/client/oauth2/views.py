@@ -65,7 +65,7 @@ def get_state(request, max_age=MAX_AGE):
     age = now() - nonce.timestamp
     max_age = timedelta(seconds=max_age)
     if age > max_age:
-        raise OAuth2Error('Nonce age %s is exceeding max age %s' % (age, max_age))
+        raise OAuth2Error('Nonce age %s is exceeding max age %s' % (age, max_age), 'nonce_expired')
         
     return data
 
