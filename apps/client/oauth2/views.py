@@ -85,6 +85,7 @@ def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None
     if data is None:
         data = {}
     query = {
+        'nonce': Nonce.objects.create(client=client).value,
         'client_id': client.client_id,
         'state': build_state(client, data),
         'response_type': response_type,
@@ -215,7 +216,7 @@ class UserInfoClientView(TemplateView):
                 'picture_endpoint': client.identity_provider.picture_endpoint
             }
             uri = get_oauth2_authentication_uri(client, response_type='id_token token', redirect_uri=redirect_uri, data=data)
-            authentications.append({'name': client.identity_provider.name, 'uri': uri})
+            authentications.append({'name': client.identity_provider.name, 'uri': uri, 'client_id': client.client_id})
 
         context['authentications'] = authentications
         return context
