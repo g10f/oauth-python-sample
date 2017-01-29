@@ -102,6 +102,7 @@ class Client(models.Model):
     client_id = models.CharField(_("client id"), max_length=255)
     client_secret = models.CharField(_("client secret"), blank=True, max_length=255)
     is_active = models.BooleanField(_('is active'), default=True)
+    # redirect_uri = models.URLField(_('redirect uri for native app'), blank=True, max_length=2048)
 
     class Meta:
         ordering = ['identity_provider', 'type']
