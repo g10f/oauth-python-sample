@@ -12,7 +12,8 @@ $(function() {
 		var demo_url = "https://qs-prelive-security.volkswagen.de/as/introspect.oauth2";
 		$.ajax({
 			url: demo_url,
-			type: 'GET',
+			type: 'POST',
+			data:'token=' +  params.access_token,
 			headers: {Authorization: 'Bearer ' + params.access_token},
 		}).done(function(data, textStatus, request) {
 			window.alert(JSON.stringify(data));
