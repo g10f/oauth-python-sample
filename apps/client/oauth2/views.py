@@ -242,7 +242,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
     try:
         state = get_state(request)
         if error:
-            raise OAuth2Error(error, state=state)
+            raise OAuth2Error(error, 'error', state=state)
 
         if code:            
             # oauth2 session management
