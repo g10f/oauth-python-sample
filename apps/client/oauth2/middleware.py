@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 
 from django.contrib import auth
@@ -7,8 +8,9 @@ from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
 from django.utils.functional import SimpleLazyObject
+from jwt import decode, InvalidTokenError
+from jwt.algorithms import get_default_algorithms
 
-from client.oauth2.crypt import AppIdentityError, verify_parsed, parse_jwt
 from client.oauth2.models import ApiClient, IdentityProvider
 from client.oauth2.views import get_oauth2_authentication_uri_from_name
 
@@ -16,18 +18,17 @@ logger = logging.getLogger(__name__)
 
 
 def verify_signed_jwt(jwt):
-    parsed, signed, signature = parse_jwt(jwt)
-    try:
-        issuer = parsed['iss']
-        # audiance = parsed['aud']  # this is the id of a client of our api
-        idp = IdentityProvider.objects.get(issuer=issuer)
-        verify_parsed(parsed, signed, signature, idp.certs, None)
-    except AppIdentityError:
-        raise
-    except Exception as e:
-        raise AppIdentityError("verify_signed_jwt failed: %s" % e)
-    
-    return parsed, idp
+    payload = decode(jwt)
+    issuer = payload['iss']
+    audiance = payload['aud']  # this is the id of a client of our api
+    idp = IdentityProvider.objects.get(issuer=issuer)
+    for jwk in idp.jwks:
+        alg_obj = get_default_algorithms()[jwk['alg']]
+        key = alg_obj.from_jwk(json.dumps(jwk))
+        decode(jwt, key=key, audiance=audiance, options={'verify_signature': True})
+        break
+
+    return payload, idp
 
 
 class IterableLazyObject(SimpleLazyObject):
@@ -48,7 +49,7 @@ def get_user_and_client_from_token(access_token):
         scopes = set()
         if data.get('scope'):
             scopes = set(data['scope'].split())
-    except (ObjectDoesNotExist, signing.BadSignature, ValueError, AppIdentityError) as e:
+    except (ObjectDoesNotExist, signing.BadSignature, ValueError, InvalidTokenError) as e:
         logger.exception(e)
         return auth.models.AnonymousUser(), None, set()
     return user, client, scopes

@@ -2,7 +2,7 @@
 import json
 from datetime import datetime
 
-import httplib2
+import requests
 from django.conf import settings
 from django.contrib.auth.models import UserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
@@ -56,13 +56,15 @@ class IdentityProvider(models.Model):
     revoke_uri = models.URLField(_('revoke uri'), blank=True, max_length=2048)
     userinfo_endpoint = models.URLField(_('userinfo uri'), blank=True, max_length=2048)
     picture_endpoint = models.URLField(_('picture uri'), blank=True, max_length=2048, default='')
-    certs_uri = models.URLField(_('certificate uri'), blank=True, max_length=2048)
-    profile_uri = models.URLField(_('uri for HTML View to change the profile'), blank=True, default='', max_length=2048)  # ok
+    jwks_uri = models.URLField(_('JSON Web Keys uri'), blank=True, max_length=2048)
+    profile_uri = models.URLField(_('uri for HTML View to change the profile'), blank=True, default='',
+                                  max_length=2048)  # ok
     is_supporting_http_auth_header = models.BooleanField(_('is supporting http auth header'), default=True)
     check_session_iframe = models.URLField(_('check_session_iframe uri'), blank=True, default='', max_length=2048)
     user_navigation_uri = models.URLField(_('user navigation uri'), blank=True, default='', max_length=2048)
     is_active = models.BooleanField(_('is active'), default=True)
     order = models.IntegerField(default=0, help_text=_('Overwrites the alphabetic order.'))
+    is_secure = models.BooleanField(_('is secure'), default=True)
 
     class Meta:
         ordering = ['order', 'name']
@@ -70,15 +72,21 @@ class IdentityProvider(models.Model):
         verbose_name_plural = _('Identity Providers')
 
     @property
-    def certs(self):
-        http = httplib2.Http(disable_ssl_certificate_validation=settings.DISABLE_SSL_CERTIFICATE_VALIDATION, cache=cache)
-        if not self.certs_uri:
+    def jwks(self):
+        if not self.jwks_uri:
             return None
-
-        if not hasattr(self, '_certs'):
-            content = http.request(self.certs_uri)[1]
-            self._certs = json.loads(content.decode('utf-8'))
-        return self._certs
+        cache_key = '%s.pub_keys' % self.jwks_uri
+        pub_keys = cache.get(cache_key)
+        if pub_keys is None:
+            r = requests.get(self.jwks_uri)
+            pks = r.json()
+            pub_keys = []
+            for key in pks['keys']:
+                pub_keys.append(key)
+            timeout = r.headers.get('max-age', 60)
+            cache.add(cache_key, pub_keys, timeout=timeout)
+            return cache.get(cache_key)
+        return pub_keys
 
     def __str__(self):
         return "%s" % self.name
@@ -87,7 +95,8 @@ class IdentityProvider(models.Model):
 CLIENT_TYPES = [
     ('web', _('Web Application')),  # response_type=code  grant_type=authorization_code or refresh_token
     ('javascript', _('Javascript Application')),  # response_type=token
-    ('native', _('Native Application')),  # response_type=code  grant_type=authorization_code or refresh_token redirect_uris=http://localhost or  urn:ietf:wg:oauth:2.0:oob
+    ('native', _('Native Application')),
+    # response_type=code  grant_type=authorization_code or refresh_token redirect_uris=http://localhost or  urn:ietf:wg:oauth:2.0:oob
     ('service', _('Service Account')),  # grant_type=client_credentials
     ('trusted', _('Trusted Client'))  # grant_type=password
 ]
@@ -102,6 +111,7 @@ class Client(models.Model):
     client_id = models.CharField(_("client id"), max_length=255)
     client_secret = models.CharField(_("client secret"), blank=True, max_length=255)
     is_active = models.BooleanField(_('is active'), default=True)
+
     # redirect_uri = models.URLField(_('redirect uri for native app'), blank=True, max_length=2048)
 
     class Meta:
@@ -158,8 +168,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(_('first name'), max_length=255, blank=True)
     last_name = models.CharField(_('last name'), max_length=255, blank=True)
     email = models.EmailField(_('email address'), blank=True)
-    is_staff = models.BooleanField(_('staff status'), default=False, help_text=_('Designates whether the user can log into this admin site.'))
-    is_active = models.BooleanField(_('active'), default=True, help_text=_('Designates whether this user should be treated as active. Unselect this instead of deleting accounts.'))
+    is_staff = models.BooleanField(_('staff status'), default=False,
+                                   help_text=_('Designates whether the user can log into this admin site.'))
+    is_active = models.BooleanField(_('active'), default=True, help_text=_(
+        'Designates whether this user should be treated as active. Unselect this instead of deleting accounts.'))
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
 
     objects = UserManager()
@@ -198,7 +210,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def application_id(self):
         try:
-            return AccessToken.objects.filter(user=self, client__identity_provider=self.identity_provider).latest().client.application_id
+            return AccessToken.objects.filter(user=self,
+                                              client__identity_provider=self.identity_provider).latest().client.application_id
         except ObjectDoesNotExist:
             return ""
 

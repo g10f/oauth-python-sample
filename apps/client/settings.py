@@ -72,12 +72,11 @@ SSO = {
     'OPENID_CHECK_ROLES': False
 }
 
-DISABLE_SSL_CERTIFICATE_VALIDATION = True
-
 AUTHENTICATION_BACKENDS = (
     'client.oauth2.backend.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend'
 )
+
 AUTH_USER_MODEL = 'oauth2.User'
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies' 
 SESSION_COOKIE_AGE = 60 * 10  # seconds * Minutes
@@ -179,8 +178,8 @@ LOGGING_HANDLERS = ['error', ]
 if DEBUG:
     LOGGING_HANDLERS += ['debug', 'console']
 
-ERROR_LOGFILE = "../../logs/error.log"
-INFO_LOGFILE = "../../logs/info.log"
+ERROR_LOGFILE = os.path.join(BASE_DIR, '../../logs/error.log')
+INFO_LOGFILE = os.path.join(BASE_DIR, '../../logs/info.log')
 
 LOGGING = {
     'version': 1,
@@ -249,7 +248,7 @@ LOGGING = {
         },
     },
     'root': {
-        'level': 'INFO',
+        'level': 'DEBUG',
         'handlers': LOGGING_HANDLERS,
     },
 }

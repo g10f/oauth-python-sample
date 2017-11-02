@@ -31,7 +31,7 @@ def update_url(url, params):
     """Given a URL, add or update query parameter and return the
     modified URL.
 
-    >>> update_url('http://example.com?foo=bar&biz=baz', {'foo', 'stuff', 'new': 'val'})
+    >>> update_url('http://example.com?foo=bar&biz=baz', {'foo': 'stuff', 'new': 'val'})
     'http://example.com?foo=stuff&biz=baz&new=val'
 
     """
@@ -168,7 +168,7 @@ class UserInfoView(TemplateView):
             context['calenderlist'] = replace_or_add_query_param("https://www.googleapis.com/calendar/v3/users/me/calendarList", 'access_token', access_token.token)
 
         except Exception as e:
-            context['error'] = e.message
+            context['error'] = str(e)
 
         return context
 
