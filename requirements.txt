@@ -4,3 +4,5 @@ requests
 pillow
 psycopg2
 sorl-thumbnail
+six
+pyjwt
