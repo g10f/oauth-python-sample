@@ -38,7 +38,6 @@ add_user_apps_to_navbar = (user_app_url, app_uuid, logout_url, user_uuid) ->
     url: url,
     dataType: "jsonp",
     ifModified: true,
-    jsonpCallback: 'user_apps',
     cache: true)
 
   request.done((data) ->

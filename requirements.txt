@@ -6,3 +6,4 @@ psycopg2
 sorl-thumbnail
 six
 pyjwt
+cryptography
