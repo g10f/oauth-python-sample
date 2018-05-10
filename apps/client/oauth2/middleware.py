@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 
@@ -33,7 +32,7 @@ def verify_signed_jwt(jwt):
 
 class IterableLazyObject(SimpleLazyObject):
     def __iter__(self):
-        if self._wrapped is None: 
+        if self._wrapped is None:
             self._setup()
         return self._wrapped.__iter__()
 
@@ -78,7 +77,7 @@ def get_auth_data(request):
                 access_token = request.REQUEST.get('access_token')
             if access_token:
                 request._cached_auth_data = get_user_and_client_from_token(access_token)
-        
+
         if not hasattr(request, '_cached_auth_data'):
             # try django auth session
             request._cached_auth_data = auth.get_user(request), None, set()
@@ -86,21 +85,23 @@ def get_auth_data(request):
 
 
 class OAuthAuthenticationMiddleware(object):
-    def process_request(self, request):            
-        assert hasattr(request, 'session'), "The Django authentication middleware requires session middleware to be installed. Edit your MIDDLEWARE_CLASSES setting to insert 'django.contrib.sessions.middleware.SessionMiddleware'."
+    def process_request(self, request):
+        assert hasattr(request,
+                       'session'), "The Django authentication middleware requires session middleware to be installed. Edit your MIDDLEWARE_CLASSES setting to insert 'django.contrib.sessions.middleware.SessionMiddleware'."
 
         request.user = SimpleLazyObject(lambda: get_auth_data(request)[0])
         request.client = SimpleLazyObject(lambda: get_auth_data(request)[1])
         request.scopes = IterableLazyObject(lambda: get_auth_data(request)[2])
-       
+
 
 class LoginMiddleware:
     def process_request(self, request):
-        assert hasattr(request, 'user'), "The Login Required middleware requires authentication middleware to be installed."
+        assert hasattr(request,
+                       'user'), "The Login Required middleware requires authentication middleware to be installed."
 
         issuer = request.GET.get('iss', None)
-        if issuer:        
+        if issuer:
             url = get_oauth2_authentication_uri_from_name(request)
             if url:
                 return HttpResponseRedirect(url)
-        return None        
+        return None

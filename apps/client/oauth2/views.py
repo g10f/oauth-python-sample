@@ -1,6 +1,6 @@
 import json
-from datetime import timedelta
 
+from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login, logout as auth_logout, authenticate
@@ -54,19 +54,20 @@ def get_state(request, max_age=MAX_AGE):
         data = json.loads(_urlsafe_b64decode(state).decode('utf-8'))
     except Exception as e:
         raise OAuth2Error("State '%s' can't be load in to JSON. '%s'" % (state, e), 'invalid_state')
-    
+
     try:
         nonce = Nonce.objects.filter(value=data.get('nonce'), client=data.get('client')).latest()
         # delete the nonce if used once
         nonce.delete()
     except ObjectDoesNotExist:
-        raise OAuth2Error("Nonce %s for provider %s not found." % (data.get('nonce'), data.get('provider')), 'invalid_state')
+        raise OAuth2Error("Nonce %s for provider %s not found." % (data.get('nonce'), data.get('provider')),
+                          'invalid_state')
 
     age = now() - nonce.timestamp
     max_age = timedelta(seconds=max_age)
     if age > max_age:
         raise OAuth2Error('Nonce age %s is exceeding max age %s' % (age, max_age), 'nonce_expired')
-        
+
     return data
 
 
@@ -113,22 +114,23 @@ def get_oauth2_authentication_uri_from_name(request):
     if request.GET.get('iss', None):
         issuer = request.GET['iss']
         user = request.user
-        
+
         if user.is_authenticated() and (user.identity_provider.issuer == issuer):
             return None
         else:
             client = get_object_or_404(Client, identity_provider__issuer=issuer, is_active=True, type='web')
             # client = get_object_or_404(Client.objects.get_object_or_404(identity_provider__issuer=issuer, is_active=True, type='web')
             next_url = request.get_full_path()
-            redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL)) 
-            return get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri, data={'next': next_url})
-                    
+            redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL))
+            return get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri,
+                                                 data={'next': next_url})
+
     return None
 
 
 class SessionView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
-        return super(SessionView, self).dispatch(request, *args, **kwargs)       
+        return super(SessionView, self).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super(SessionView, self).get_context_data(**kwargs)
@@ -140,8 +142,10 @@ class SessionView(TemplateView):
                 redirect_uri = self.request.build_absolute_uri(force_text(settings.LOGIN_URL))
                 next_url = reverse('session')
                 id_token = IdToken.objects.filter(user=user, client=client).latest()
-                context['refresh_token_url'] = get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri,
-                                                                             data={'next': next_url}, prompt='none', id_token_hint=id_token.raw)
+                context['refresh_token_url'] = get_oauth2_authentication_uri(client, response_type='code',
+                                                                             redirect_uri=redirect_uri,
+                                                                             data={'next': next_url}, prompt='none',
+                                                                             id_token_hint=id_token.raw)
                 context['session_state'] = id_token.session_state
                 context['client_id'] = client.client_id
                 context['origin'] = user.identity_provider.issuer
@@ -160,12 +164,14 @@ class UserInfoView(TemplateView):
             access_token = get_access_token(user)
 
             userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
-            userinfo_endpoint = replace_or_add_query_param(access_token.client.identity_provider.userinfo_endpoint, 'access_token', access_token.token)
+            userinfo_endpoint = replace_or_add_query_param(access_token.client.identity_provider.userinfo_endpoint,
+                                                           'access_token', access_token.token)
 
             # update_user(access_token.client, userinfo, 'userinfo')
             context['userinfo'] = userinfo
             context['userinfo_endpoint'] = userinfo_endpoint
-            context['calenderlist'] = replace_or_add_query_param("https://www.googleapis.com/calendar/v3/users/me/calendarList", 'access_token', access_token.token)
+            context['calenderlist'] = replace_or_add_query_param(
+                "https://www.googleapis.com/calendar/v3/users/me/calendarList", 'access_token', access_token.token)
 
         except Exception as e:
             context['error'] = str(e)
@@ -178,16 +184,15 @@ class UserInfoView(TemplateView):
             return super(UserInfoView, self).dispatch(*args, **kwargs)
         except AccessToken.DoesNotExist:
             # Log in again
-            return redirect_to_login(self.request.build_absolute_uri())            
+            return redirect_to_login(self.request.build_absolute_uri())
 
-    
+
 class InstalledLoginView(TemplateView):
     template_name = "installed_login.html"
-    
+
     def get_context_data(self, **kwargs):
-        
         context = super(InstalledLoginView, self).get_context_data(**kwargs)
-        
+
         authentications = []
         for client in Client.objects.filter(identity_provider__is_active=True, type='native', is_active=True):
             uri = get_oauth2_authentication_uri(client, response_type='code', redirect_uri='urn:ietf:wg:oauth:2.0:oob')
@@ -204,23 +209,23 @@ class UserInfoClientView(TemplateView):
     template_name = "userinfo_client.html"
 
     def get_context_data(self, **kwargs):
-        
         context = super(UserInfoClientView, self).get_context_data(**kwargs)
-        
+
         authentications = []
         redirect_uri = self.request.build_absolute_uri()
-        
+
         for client in Client.objects.filter(identity_provider__is_active=True, is_active=True, type='javascript'):
             data = {
                 'userinfo_endpoint': client.identity_provider.userinfo_endpoint,
                 'picture_endpoint': client.identity_provider.picture_endpoint
             }
-            uri = get_oauth2_authentication_uri(client, response_type='id_token token', redirect_uri=redirect_uri, data=data)
+            uri = get_oauth2_authentication_uri(client, response_type='id_token token', redirect_uri=redirect_uri,
+                                                data=data)
             authentications.append({'name': client.identity_provider.name, 'uri': uri, 'client_id': client.client_id})
 
         context['authentications'] = authentications
         return context
- 
+
 
 @never_cache
 def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
@@ -229,14 +234,15 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
     # Ensure the user-originating redirection url is safe.
     if not is_safe_url(url=next_url, host=request.get_host()):
         next_url = resolve_url(settings.LOGIN_REDIRECT_URL)
-    
+
     code = request.GET.get('code')  # OAuth 2
     error = request.GET.get('error')  # OAuth 2
-    redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL)) 
-    
+    redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL))
+
     authentications = []
     for client in Client.objects.filter(identity_provider__is_active=True, is_active=True, type='web'):
-        uri = get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri, data={'next': next_url})
+        uri = get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri,
+                                            data={'next': next_url})
         authentications.append({'name': client.identity_provider.name, 'uri': uri, 'id': client.identity_provider.id})
     state = {}
     try:
@@ -244,11 +250,11 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
         if error:
             raise OAuth2Error(error, 'error', state=state)
 
-        if code:            
+        if code:
             # oauth2 session management
             session_state = request.GET.get('session_state', '')
             next_url = state['next']
-            
+
             client = Client.objects.get(id=state['client'])
             user = authenticate(client=client, code=code, redirect_uri=redirect_uri, session_state=session_state)
 
@@ -281,9 +287,19 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             if next_url:
                 next_url = url_update(next_url, {'error': e.error, 'description': e.message})
                 return HttpResponseRedirect(next_url)
-            
+        if e.error == 'application_access_denied':
+            auth_logout(request)
+            redirect_to = e.state
+            if redirect_to:
+                next_url = state.get('next', '')
+                if next_url:
+                    next_url = request.build_absolute_uri(next_url)
+                    next_url = url_update(next_url, {'error': e.error, 'description': e.message})
+                redirect_to = url_update(redirect_to, {'redirect_uri': next_url})
+                return HttpResponseRedirect(redirect_to)
+
         return render(request, 'oauth2/error.html', context={'error': e})
-        
+
 
 @never_cache
 def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
@@ -295,7 +311,7 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
     # Ensure the user-o riginating redirection url is safe.
     if not is_safe_url(url=next_url, host=request.get_host()):
         next_url = resolve_url(settings.LOGIN_REDIRECT_URL)
-    
+
     if request.user.is_authenticated():
         identity_provider = request.user.identity_provider
         auth_logout(request)
@@ -303,19 +319,18 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
             next_url = urlquote_plus(request.build_absolute_uri(next_url))
             # TODO replace next with post_logout_redirect_uri 
             # see http://openid.net/specs/openid-connect-session-1_0.html#RPLogout
-            redirect_to = "%s?next=%s" % (identity_provider.end_session_endpoint, next_url)   
-        
+            redirect_to = "%s?next=%s" % (identity_provider.end_session_endpoint, next_url)
+
     return HttpResponseRedirect(redirect_to)
 
 
 class IdentityProviderRedirectView(RedirectView):
-    
     uri_name = None
-    
+
     @method_decorator(login_required)
     def dispatch(self, request, *args, **kwargs):
         return super(IdentityProviderRedirectView, self).dispatch(request, *args, **kwargs)
-    
+
     def get_redirect_url(self):
         if not self.uri_name:
             raise Http404('uri_name was not defined.')

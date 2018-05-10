@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
@@ -60,24 +59,25 @@ class OrganisationAdmin(admin.ModelAdmin):
 
 class AccessTokenAdmin(admin.ModelAdmin):
     list_display = ('user', 'client', 'type', 'expires_at', '__str__')
-    list_filter = ('client', )
+    list_filter = ('client',)
 
 
 class RefreshTokenAdmin(admin.ModelAdmin):
     list_display = ('access_token', 'token')
-    list_filter = ('access_token__client', )
+    list_filter = ('access_token__client',)
 
 
 class IdTokenAdmin(admin.ModelAdmin):
     list_display = ('user', 'client', 'aud', 'email', 'iss', 'sub', 'exp')
-    list_filter = ('client', )
+    list_filter = ('client',)
 
 
 class IdentityProviderAdmin(admin.ModelAdmin):
     class Media:
         js = (
             "js/openid-configuration-1.0.0.js",
-        )    
+        )
+
     list_display = ('name', 'authorization_endpoint', 'token_endpoint', 'userinfo_endpoint', 'is_active')
     list_filter = ('client__type', 'is_supporting_http_auth_header')
 
@@ -85,7 +85,7 @@ class IdentityProviderAdmin(admin.ModelAdmin):
 class NonceAdmin(admin.ModelAdmin):
     list_display = ('value', 'client', 'timestamp')
     list_filter = ('client',)
-    
+
 
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('identity_provider', 'type', 'is_active')
@@ -94,7 +94,7 @@ class ClientAdmin(admin.ModelAdmin):
 
 class ApiClientAdmin(admin.ModelAdmin):
     list_display = ('identity_provider', 'client_id', 'is_active')
-    list_filter = ('identity_provider', )
+    list_filter = ('identity_provider',)
 
 
 site.register(User, UserAdmin)

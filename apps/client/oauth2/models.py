@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import json
-from datetime import datetime
 
 import requests
+from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import UserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
@@ -15,6 +14,8 @@ from django.utils.http import urlquote
 from django.utils.text import Truncator
 from django.utils.translation import ugettext_lazy as _
 from six import python_2_unicode_compatible
+
+from .utils import OAuth2Error
 
 MAX_AGE = 600
 
@@ -65,6 +66,8 @@ class IdentityProvider(models.Model):
     is_active = models.BooleanField(_('is active'), default=True)
     order = models.IntegerField(default=0, help_text=_('Overwrites the alphabetic order.'))
     is_secure = models.BooleanField(_('is secure'), default=True)
+    check_roles = models.BooleanField(_('check roles'), default=False)
+    extend_access_uri = models.URLField(_('extend access uri'), blank=True, default='', max_length=2048)
 
     class Meta:
         ordering = ['order', 'name']
@@ -372,6 +375,15 @@ _name_mapping = {
 }
 
 
+def _has_access(data):
+    try:
+        if len(data['roles']) > 0:
+            return True
+    except KeyError:
+        return False
+    return False
+
+
 def update_user(client, data):
     identity_provider = client.identity_provider
     defaults = {'email': '', 'is_active': True}  # default blank email for not null db constraint
@@ -397,5 +409,16 @@ def update_user(client, data):
             organisations.append(organisation)
 
         user.organisations = organisations
+
+    if client.identity_provider.check_roles:
+        if not _has_access(data):
+            try:
+                user = User.objects.get(uuid=defaults['uuid'], identity_provider=identity_provider)
+                user.is_active = False
+                user.save()
+            except User.DoesNotExist:
+                pass
+            raise OAuth2Error(_("Sorry, you don't have access to this application"), 'application_access_denied',
+                              state=client.identity_provider.extend_access_uri)
 
     return user
