@@ -36,10 +36,7 @@ def url_update(url, param_dict):
     return urlunsplit((scheme, netloc, path, query, fragment))
 
 
-def get_tokens_from_code(client, code, redirect_uri, http=None):
-    if http is not None:
-        warnings.warn('http Parameter will be removed', DeprecationWarning)
-
+def get_tokens_from_code(client, code, redirect_uri):
     query = {
         'grant_type': 'authorization_code',
         'client_id': client.client_id,

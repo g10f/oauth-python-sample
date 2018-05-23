@@ -1,7 +1,10 @@
+import base64
+import hashlib
 import json
+from datetime import datetime
+from functools import partial
 
 import requests
-from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import UserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
@@ -107,13 +110,16 @@ CLIENT_TYPES = [
 
 @python_2_unicode_compatible
 class Client(models.Model):
-    identity_provider = models.ForeignKey(IdentityProvider)
+    identity_provider = models.ForeignKey(IdentityProvider, on_delete=models.CASCADE)
     type = models.CharField(_('type'), max_length=255, choices=CLIENT_TYPES, default='web')
     default_scopes = models.CharField(_("default scopes"), blank=True, max_length=2048)
     application_id = models.CharField(_("application id"), blank=True, max_length=255)
     client_id = models.CharField(_("client id"), max_length=255)
     client_secret = models.CharField(_("client secret"), blank=True, max_length=255)
     is_active = models.BooleanField(_('is active'), default=True)
+    claims = models.TextField(_("claims"), blank=True)
+    max_age = models.DurationField(_("max_age"), blank=True, null=True)
+    acr_values = models.CharField(_("acr_values"), blank=True, max_length=255)
 
     # redirect_uri = models.URLField(_('redirect uri for native app'), blank=True, max_length=2048)
 
@@ -127,7 +133,7 @@ class Client(models.Model):
 
 @python_2_unicode_compatible
 class ApiClient(models.Model):
-    identity_provider = models.ForeignKey(IdentityProvider)
+    identity_provider = models.ForeignKey(IdentityProvider, on_delete=models.CASCADE)
     client_id = models.CharField(_("client id"), max_length=255)
     is_active = models.BooleanField(_('is active'), default=True)
 
@@ -141,7 +147,7 @@ class ApiClient(models.Model):
 @python_2_unicode_compatible
 class Nonce(models.Model):
     value = models.CharField(_("value"), db_index=True, max_length=12, default=get_random_string)
-    client = models.ForeignKey(Client)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -149,6 +155,24 @@ class Nonce(models.Model):
 
     def __str__(self):
         return "%s" % self.value
+
+
+@python_2_unicode_compatible
+class CodeVerifier(models.Model):
+    value = models.CharField(_("value"), db_index=True, max_length=128, default=partial(get_random_string, length=128))
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        get_latest_by = "timestamp"
+
+    def __str__(self):
+        return "%s" % self.value
+
+    @property
+    def code_challenge(self):
+        digest = hashlib.sha256(self.value.encode('ascii')).digest()
+        return base64.urlsafe_b64encode(digest).rstrip(b'=')
 
 
 @python_2_unicode_compatible
@@ -164,7 +188,7 @@ class Organisation(models.Model):
 class User(AbstractBaseUser, PermissionsMixin):
     unique_name = models.CharField(_('unique name'), unique=True, max_length=255)
     uuid = models.CharField(_("uuid"), max_length=36)  # hex value of uuid
-    identity_provider = models.ForeignKey(IdentityProvider, blank=True, null=True)
+    identity_provider = models.ForeignKey(IdentityProvider, blank=True, null=True, on_delete=models.CASCADE)
     organisations = models.ManyToManyField(Organisation, blank=True)
     # original Django fields, except that username is not unique
     username = models.CharField(_('username'), max_length=255)
@@ -230,8 +254,8 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 @python_2_unicode_compatible
 class AccessToken(models.Model):
-    client = models.ForeignKey(Client)
-    user = models.ForeignKey(User)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     token = models.CharField(_("token"), max_length=2048)
     type = models.CharField(_("type"), max_length=255)
     expires_at = models.DateTimeField(_('expires at'))
@@ -246,7 +270,7 @@ class AccessToken(models.Model):
 
 @python_2_unicode_compatible
 class RefreshToken(models.Model):
-    access_token = models.OneToOneField(AccessToken, related_name='refresh_token')
+    access_token = models.OneToOneField(AccessToken, related_name='refresh_token', on_delete=models.CASCADE)
     token = models.CharField(_("token"), max_length=2048)
 
     def __str__(self):
@@ -255,8 +279,8 @@ class RefreshToken(models.Model):
 
 @python_2_unicode_compatible
 class IdToken(models.Model):
-    client = models.ForeignKey(Client)
-    user = models.ForeignKey(User)
+    client = models.ForeignKey(Client, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     aud = models.CharField(_("audience"), max_length=255)
     email = models.CharField(_("email"), max_length=255, blank=True)
     exp = models.DateTimeField(_("expires at"))
@@ -301,7 +325,7 @@ class IdToken(models.Model):
 
 @python_2_unicode_compatible
 class Role(models.Model):
-    group = models.OneToOneField(Group)
+    group = models.OneToOneField(Group, on_delete=models.CASCADE)
 
     def __str__(self):
         return "%s" % self.group.name

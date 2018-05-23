@@ -1,21 +1,21 @@
 import json
-
 from datetime import timedelta
+from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login, logout as auth_logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.http import Http404
 from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
 from django.shortcuts import resolve_url, get_object_or_404
+from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_text
 from django.utils.http import is_safe_url, urlquote_plus
-from django.utils.six.moves.urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
 from django.utils.timezone import now
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
@@ -24,7 +24,7 @@ from django.views.generic.base import RedirectView
 
 from client.oauth2.backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update
 from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
-from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE
+from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 
 
 def update_url(url, params):
@@ -90,10 +90,21 @@ def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None
         'client_id': client.client_id,
         'state': build_state(client, data),
         'response_type': response_type,
-        'redirect_uri': redirect_uri,
+        'redirect_uri': redirect_uri
     }
     if client.default_scopes:
         query['scope'] = client.default_scopes
+    if client.claims:
+        query['claims'] = client.claims.encode('ascii')
+    if client.max_age:
+        query['max_age'] = client.max_age.seconds
+    if client.acr_values:
+        query['acr_values'] = client.acr_values
+
+    # PKCE
+    if client.type == 'native' and not client.client_secret:
+        query['code_challenge'] = CodeVerifier.objects.create(client=client).code_challenge
+
     if prompt is not None:
         query['prompt'] = prompt
     if id_token_hint is not None:
