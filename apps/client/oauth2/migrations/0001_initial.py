@@ -115,8 +115,8 @@ class Migration(migrations.Migration):
                 ('scope', models.CharField(max_length=2048, verbose_name='scope', blank=True)),
                 ('content', models.TextField(verbose_name='JSON content')),
                 ('expires_at', models.DateTimeField(verbose_name='expires at date time')),
-                ('client', models.ForeignKey(to='oauth2.Client')),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('client', models.ForeignKey(to='oauth2.Client', on_delete=models.CASCADE)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),
             ],
             options={
                 'get_latest_by': 'expires_at',
@@ -131,7 +131,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('value', models.CharField(default=django.utils.crypto.get_random_string, max_length=12, verbose_name='value', db_index=True)),
                 ('timestamp', models.DateTimeField(auto_now_add=True)),
-                ('client', models.ForeignKey(to='oauth2.Client')),
+                ('client', models.ForeignKey(to='oauth2.Client', on_delete=models.CASCADE)),
             ],
             options={
                 'get_latest_by': 'timestamp',
@@ -154,7 +154,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('token', models.CharField(max_length=2048, verbose_name='token')),
-                ('access_token', models.OneToOneField(related_name=b'refresh_token', to='oauth2.AccessToken')),
+                ('access_token', models.OneToOneField(related_name='refresh_token', to='oauth2.AccessToken', on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -164,7 +164,7 @@ class Migration(migrations.Migration):
             name='Role',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('group', models.OneToOneField(to='auth.Group')),
+                ('group', models.OneToOneField(to='auth.Group', on_delete=models.CASCADE)),
             ],
             options={
             },
@@ -173,7 +173,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='client',
             name='identity_provider',
-            field=models.ForeignKey(to='oauth2.IdentityProvider'),
+            field=models.ForeignKey(to='oauth2.IdentityProvider', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -183,7 +183,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='apiclient',
             name='identity_provider',
-            field=models.ForeignKey(to='oauth2.IdentityProvider'),
+            field=models.ForeignKey(to='oauth2.IdentityProvider', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -193,19 +193,19 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='accesstoken',
             name='client',
-            field=models.ForeignKey(to='oauth2.Client'),
+            field=models.ForeignKey(to='oauth2.Client', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='accesstoken',
             name='user',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='user',
             name='identity_provider',
-            field=models.ForeignKey(blank=True, to='oauth2.IdentityProvider', null=True),
+            field=models.ForeignKey(blank=True, to='oauth2.IdentityProvider', null=True, on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(

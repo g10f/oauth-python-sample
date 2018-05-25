@@ -20,7 +20,7 @@ class AdminSite(admin.sites.AdminSite):
     def admin_view(self, view, cacheable=False):
         def inner(request, *args, **kwargs):
             if not self.has_permission(request):
-                if request.user.is_authenticated():
+                if request.user.is_authenticated:
                     return render(request, 'oauth2/error.html',
                                   context={'error': "User %s does not have admin access." % request.user.username})
                 else:

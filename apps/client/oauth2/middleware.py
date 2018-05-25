@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
+from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
 from jwt import decode, InvalidTokenError
 from jwt.algorithms import get_default_algorithms
@@ -84,7 +85,7 @@ def get_auth_data(request):
     return request._cached_auth_data
 
 
-class OAuthAuthenticationMiddleware(object):
+class OAuthAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         assert hasattr(request,
                        'session'), "The Django authentication middleware requires session middleware to be installed. Edit your MIDDLEWARE_CLASSES setting to insert 'django.contrib.sessions.middleware.SessionMiddleware'."
@@ -94,7 +95,7 @@ class OAuthAuthenticationMiddleware(object):
         request.scopes = IterableLazyObject(lambda: get_auth_data(request)[2])
 
 
-class LoginMiddleware:
+class LoginMiddleware(MiddlewareMixin):
     def process_request(self, request):
         assert hasattr(request,
                        'user'), "The Login Required middleware requires authentication middleware to be installed."

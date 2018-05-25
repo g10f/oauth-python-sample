@@ -102,8 +102,10 @@ def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None
         query['acr_values'] = client.acr_values
 
     # PKCE
-    if client.type == 'native' and not client.client_secret:
-        query['code_challenge'] = CodeVerifier.objects.create(client=client).code_challenge
+    if client.use_pkce:
+        code_verifier = CodeVerifier.objects.create(client=client)
+        query['code_challenge'] = code_verifier.code_challenge
+        query['code_challenge_method'] = code_verifier.code_challenge_method
 
     if prompt is not None:
         query['prompt'] = prompt
@@ -126,7 +128,7 @@ def get_oauth2_authentication_uri_from_name(request):
         issuer = request.GET['iss']
         user = request.user
 
-        if user.is_authenticated() and (user.identity_provider.issuer == issuer):
+        if user.is_authenticated and (user.identity_provider.issuer == issuer):
             return None
         else:
             client = get_object_or_404(Client, identity_provider__issuer=issuer, is_active=True, type='web')
@@ -148,7 +150,7 @@ class SessionView(TemplateView):
         user = self.request.user
         context['error'] = self.request.GET.get('error', '')
         try:
-            if user.is_authenticated():
+            if user.is_authenticated:
                 client = Client.objects.get(identity_provider=user.identity_provider, type='web')
                 redirect_uri = self.request.build_absolute_uri(force_text(settings.LOGIN_URL))
                 next_url = reverse('session')
@@ -177,7 +179,6 @@ class UserInfoView(TemplateView):
             userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
             userinfo_endpoint = replace_or_add_query_param(access_token.client.identity_provider.userinfo_endpoint,
                                                            'access_token', access_token.token)
-
             # update_user(access_token.client, userinfo, 'userinfo')
             context['userinfo'] = userinfo
             context['userinfo_endpoint'] = userinfo_endpoint
@@ -281,7 +282,8 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                              {'user': user, 'provider': client.identity_provider})
             return render(request, 'login.html', context={'next': next_url, 'authentications': authentications})
 
-            # In production you should redirect to another page, so that the url with the code and state gets not requested again.
+            # In production you should redirect to another page, so that the url with the code and state gets not
+            # requested again.
             # Here for demonstration, the request from the OAuth2 provider is shown.
             # return HttpResponseRedirect(next_url)
         else:
@@ -291,7 +293,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             # return HttpResponseRedirect(identity_provider_authentication_uri)
 
     except OAuth2Error as e:
-        if e.error == 'login_required' and request.user.is_authenticated():
+        if e.error == 'login_required' and request.user.is_authenticated:
             # oauth2 session management
             auth_logout(request)
             next_url = state.get('next')
@@ -323,7 +325,7 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
     if not is_safe_url(url=next_url, host=request.get_host()):
         next_url = resolve_url(settings.LOGIN_REDIRECT_URL)
 
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         identity_provider = request.user.identity_provider
         auth_logout(request)
         if identity_provider:

@@ -95,7 +95,7 @@ class IdentityProvider(models.Model):
         return pub_keys
 
     def __str__(self):
-        return "%s" % self.name
+        return self.name
 
 
 CLIENT_TYPES = [
@@ -120,7 +120,9 @@ class Client(models.Model):
     claims = models.TextField(_("claims"), blank=True)
     max_age = models.DurationField(_("max_age"), blank=True, null=True)
     acr_values = models.CharField(_("acr_values"), blank=True, max_length=255)
+    use_pkce = models.BooleanField(_('use PKCE'), default=False)
 
+    #  client.type == 'native' and not client.client_secret:
     # redirect_uri = models.URLField(_('redirect uri for native app'), blank=True, max_length=2048)
 
     class Meta:
@@ -154,7 +156,7 @@ class Nonce(models.Model):
         get_latest_by = "timestamp"
 
     def __str__(self):
-        return "%s" % self.value
+        return self.value
 
 
 @python_2_unicode_compatible
@@ -174,6 +176,10 @@ class CodeVerifier(models.Model):
         digest = hashlib.sha256(self.value.encode('ascii')).digest()
         return base64.urlsafe_b64encode(digest).rstrip(b'=')
 
+    @property
+    def code_challenge_method(self):
+        return 'S256'
+
 
 @python_2_unicode_compatible
 class Organisation(models.Model):
@@ -181,7 +187,7 @@ class Organisation(models.Model):
     uuid = models.CharField(_("uuid"), unique=True, max_length=36)  # UUIDField(version=4, unique=True, editable=True)
 
     def __str__(self):
-        return "%s" % self.name
+        return self.name
 
 
 @python_2_unicode_compatible
@@ -249,7 +255,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.identity_provider
 
     def __str__(self):
-        return '%s' % self.username
+        return self.username
 
 
 @python_2_unicode_compatible
@@ -320,7 +326,7 @@ class IdToken(models.Model):
         return obj
 
     def __str__(self):
-        return self.content[:20]
+        return Truncator(self.content).chars(20)
 
 
 @python_2_unicode_compatible
@@ -328,7 +334,7 @@ class Role(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE)
 
     def __str__(self):
-        return "%s" % self.group.name
+        return self.group.name
 
 
 def update_roles(user, roles):

@@ -1,6 +1,7 @@
 import json
 import logging
 import warnings
+from json import JSONDecodeError
 from urllib.parse import urlsplit, parse_qsl, urlunsplit
 
 import requests
@@ -12,7 +13,7 @@ from django.utils.timezone import now
 from jwt import decode, InvalidTokenError
 from jwt.algorithms import get_default_algorithms
 
-from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken
+from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken, CodeVerifier
 from client.oauth2.utils import OAuth2Error
 
 logger = logging.getLogger(__name__)
@@ -44,22 +45,32 @@ def get_tokens_from_code(client, code, redirect_uri):
         'code': code,
         'redirect_uri': redirect_uri
     }
+    if client.use_pkce:
+        query['code_verifier'] = '%s' % CodeVerifier.objects.filter(client=client).latest()
 
     headers = {'content-type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
     r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
                       verify=client.identity_provider.is_secure)
 
+    if r.status_code >= 400:
+        raise OAuth2Error(r.text, r.status_code)
+
     content_type = r.headers.get('content-type', '').split(';')[0]
 
-    if content_type == "text/plain":  # facebook returns the data as text
-        content = dict(parse_qsl(r.text))
-    else:
-        content = r.json()
+    try:
+        if content_type == "text/plain":  # facebook returns the data as text
+            content = dict(parse_qsl(r.text))
+        else:
+            content = r.json()
 
-    if content.get('error'):
-        message = content.get('error_description')
-        error = content.get('error')
-        raise OAuth2Error(message, error)
+        if content.get('error'):
+            message = content.get('error_description')
+            error = content.get('error')
+            raise OAuth2Error(message, error)
+
+    except JSONDecodeError as e:
+        logger.error(e)
+        raise OAuth2Error('', e)
 
     expires_in = content.get('expires_in', 3600)  # default 1 hour
     access_token = AccessToken(
