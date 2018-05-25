@@ -3,7 +3,7 @@ from functools import update_wrapper
 from django.contrib import admin
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
@@ -20,7 +20,7 @@ class AdminSite(admin.sites.AdminSite):
     def admin_view(self, view, cacheable=False):
         def inner(request, *args, **kwargs):
             if not self.has_permission(request):
-                if request.user.is_authenticated():
+                if request.user.is_authenticated:
                     return render(request, 'oauth2/error.html',
                                   context={'error': "User %s does not have admin access." % request.user.username})
                 else:

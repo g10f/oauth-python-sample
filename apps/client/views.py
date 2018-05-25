@@ -3,7 +3,7 @@ import logging
 from functools import wraps
 
 from django.contrib.flatpages import models
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.utils.decorators import available_attrs

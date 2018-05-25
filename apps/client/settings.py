@@ -1,7 +1,7 @@
 # Django settings for client project.
 import os
 import sys
-from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
 
 try:
     RUNNING_DEVSERVER = (sys.argv[1] == 'runserver')
@@ -15,6 +15,9 @@ if RUNNING_DEVSERVER:
     DEBUG = True
 else:
     DEBUG = False
+
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
 
@@ -136,17 +139,18 @@ TEMPLATES = [
     },
 ]
 
-MIDDLEWARE_CLASSES = (
-    'django.middleware.common.CommonMiddleware',
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     # 'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'client.oauth2.middleware.OAuthAuthenticationMiddleware',    
+    'client.oauth2.middleware.OAuthAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'client.oauth2.middleware.LoginMiddleware',
-)
+]
 
 ROOT_URLCONF = 'client.urls'
 WSGI_APPLICATION = 'client.wsgi.application'
@@ -174,13 +178,6 @@ else:
     SERVER_EMAIL = 'noreply@g10f.de'
     LOGGING_LEVEL = 'INFO'
 
-LOGGING_HANDLERS = ['error', ]
-if DEBUG:
-    LOGGING_HANDLERS += ['debug', 'console']
-
-ERROR_LOGFILE = os.path.join(BASE_DIR, '../../logs/error.log')
-INFO_LOGFILE = os.path.join(BASE_DIR, '../../logs/info.log')
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -194,12 +191,20 @@ LOGGING = {
     },
     'filters': {
         'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
     },
     'handlers': {
-        'null': {
+        'console': {
             'level': 'DEBUG',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'null': {
             'class': 'logging.NullHandler',
         },
         'mail_admins': {
@@ -208,47 +213,33 @@ LOGGING = {
             'class': 'django.utils.log.AdminEmailHandler',
             'formatter': 'verbose',
         },
-        'error': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, ERROR_LOGFILE),
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'debug': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, INFO_LOGFILE),
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
     },
     'loggers': {
         'django.request': {
-            'handlers': ['error'],
+            'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
         },
-        'client': {
-            'handlers': LOGGING_HANDLERS,
-            'level': LOGGING_LEVEL,
+        'oauth2': {
+            'handlers': ['console', 'mail_admins'],
+            'level': 'DEBUG',
             'propagate': False,
         },
         'django.db.backends': {
-            'handlers': ['console', 'error', 'debug'],
+            'handlers': ['console'],
             'propagate': False,
             'level': 'WARNING',
         },
+        'py.warnings': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+        },
+        'sorl': {
+            'level': 'WARNING',
+        }
     },
     'root': {
         'level': 'DEBUG',
-        'handlers': LOGGING_HANDLERS,
+        'handlers': ['console', 'mail_admins'],
     },
 }

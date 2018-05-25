@@ -6,8 +6,8 @@ from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.utils.translation import ugettext_lazy as _
 
 from client.admin import site
-from client.oauth2.models import Organisation, Role, User, AccessToken, RefreshToken, IdentityProvider, IdToken, Nonce, \
-    Client, ApiClient
+from client.oauth2.models import Organisation, Role, User, AccessToken, RefreshToken, IdentityProvider, IdToken, \
+    Nonce, Client, ApiClient, CodeVerifier
 
 
 class UserChangeForm(DjangoUserChangeForm):
@@ -87,6 +87,11 @@ class NonceAdmin(admin.ModelAdmin):
     list_filter = ('client',)
 
 
+class CodeVerifierAdmin(admin.ModelAdmin):
+    list_display = ('value', 'client', 'timestamp')
+    list_filter = ('client',)
+
+
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('identity_provider', 'type', 'is_active')
     list_filter = ('type', 'identity_provider',)
@@ -105,5 +110,6 @@ site.register(RefreshToken, RefreshTokenAdmin)
 site.register(IdToken, IdTokenAdmin)
 site.register(IdentityProvider, IdentityProviderAdmin)
 site.register(Nonce, NonceAdmin)
+site.register(CodeVerifier, CodeVerifierAdmin)
 site.register(Client, ClientAdmin)
 site.register(ApiClient, ApiClientAdmin)

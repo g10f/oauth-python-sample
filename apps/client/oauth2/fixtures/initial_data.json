@@ -12,7 +12,7 @@
         "revoke_uri": "",
         "userinfo_endpoint": "https://sso-dev.dwbn.org/api/v2/users/me/",
         "picture_endpoint": "https://sso-dev.dwbn.org/api/v2/users/me/picture/",
-        "certs_uri": "https://sso-dev.dwbn.org/oauth2/certs/",
+        "jwks_uri": "https://sso-dev.dwbn.org/oauth2/jwks/",
         "profile_uri": "https://sso-dev.dwbn.org/accounts/profile/",
         "is_supporting_http_auth_header": true,
         "check_session_iframe": "https://sso-dev.dwbn.org/oauth2/session/",
@@ -30,7 +30,7 @@
         "default_scopes": "openid profile email offline_access address phone",
         "application_id": "f70e54d7af854a65b29e6246a6a6e03a",
         "client_id": "15b433a98e9b466685594aaf9323564a",
-        "client_secret": "",
+        "client_secret": "5s8JeyQtYhKE",
         "is_active": true
     }
 },
