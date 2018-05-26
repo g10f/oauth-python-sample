@@ -13,7 +13,7 @@ from django.utils.timezone import now
 from jwt import decode, InvalidTokenError
 from jwt.algorithms import get_default_algorithms
 
-from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken, CodeVerifier
+from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken
 from client.oauth2.utils import OAuth2Error
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ def url_update(url, param_dict):
     return urlunsplit((scheme, netloc, path, query, fragment))
 
 
-def get_tokens_from_code(client, code, redirect_uri):
+def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     query = {
         'grant_type': 'authorization_code',
         'client_id': client.client_id,
@@ -46,7 +46,7 @@ def get_tokens_from_code(client, code, redirect_uri):
         'redirect_uri': redirect_uri
     }
     if client.use_pkce:
-        query['code_verifier'] = '%s' % CodeVerifier.objects.filter(client=client).latest()
+        query['code_verifier'] = '%s' % code_verifier
 
     headers = {'content-type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
     r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
@@ -195,11 +195,11 @@ def get_userinfo(access_token, uuid=None, http=None):
 
 
 class OAuth2Backend(ModelBackend):
-    def authenticate(self, client=None, code=None, redirect_uri=None, session_state=None, **kwargs):
+    def authenticate(self, client=None, code=None, redirect_uri=None, session_state=None, code_verifier=None, **kwargs):
         if not code:
             return None
 
-        access_token, id_token_content, refresh_token = get_tokens_from_code(client, code, redirect_uri)
+        access_token, id_token_content, refresh_token = get_tokens_from_code(client, code, code_verifier, redirect_uri)
         """
         You can use the OpenID Connect id_token which contains the userid and email
         or make another request (GET ../userinfo/ ) to get the userinfos 

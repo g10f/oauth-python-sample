@@ -71,7 +71,7 @@ def get_state(request, max_age=MAX_AGE):
     return data
 
 
-def build_state(client, data=None):
+def build_state(client, code_verifier, data=None):
     """
     data can be a dict with additional information
     """
@@ -79,16 +79,26 @@ def build_state(client, data=None):
         data = {}
     nonce = Nonce.objects.create(client=client)
     data.update({'nonce': nonce.value, 'client': client.id})
+    if code_verifier:
+        data['code_verifier'] = code_verifier.id
+
     return _urlsafe_b64encode(_json_encode(data).encode('ascii'))
 
 
 def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None, prompt=None, id_token_hint=None):
     if data is None:
         data = {}
+
+    # PKCE
+    if client.use_pkce:
+        code_verifier = CodeVerifier.objects.create(client=client)
+    else:
+        code_verifier = None
+
     query = {
         'nonce': Nonce.objects.create(client=client).value,
         'client_id': client.client_id,
-        'state': build_state(client, data),
+        'state': build_state(client, code_verifier, data),
         'response_type': response_type,
         'redirect_uri': redirect_uri
     }
@@ -103,7 +113,6 @@ def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None
 
     # PKCE
     if client.use_pkce:
-        code_verifier = CodeVerifier.objects.create(client=client)
         query['code_challenge'] = code_verifier.code_challenge
         query['code_challenge_method'] = code_verifier.code_challenge_method
 
@@ -268,7 +277,12 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             next_url = state['next']
 
             client = Client.objects.get(id=state['client'])
-            user = authenticate(client=client, code=code, redirect_uri=redirect_uri, session_state=session_state)
+            if client.use_pkce:
+                code_verifier = CodeVerifier.objects.get(id=state['code_verifier'])
+            else:
+                code_verifier = None
+
+            user = authenticate(client=client, code=code, redirect_uri=redirect_uri, session_state=session_state, code_verifier=code_verifier)
 
             auth_login(request, user)
 
