@@ -1,10 +1,10 @@
 import base64
 import hashlib
 import json
-from datetime import datetime
 from functools import partial
 
 import requests
+from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import UserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
@@ -16,7 +16,6 @@ from django.utils.crypto import get_random_string
 from django.utils.http import urlquote
 from django.utils.text import Truncator
 from django.utils.translation import ugettext_lazy as _
-from six import python_2_unicode_compatible
 
 from .utils import OAuth2Error
 
@@ -49,7 +48,6 @@ def update_object_from_dict(destination, source_dict, key_mapping=None):
         destination.save()
 
 
-@python_2_unicode_compatible
 class IdentityProvider(models.Model):
     issuer = models.CharField(_("issuer"), max_length=255, blank=True)  # ok
     name = models.CharField(_("name"), max_length=255)
@@ -108,7 +106,6 @@ CLIENT_TYPES = [
 ]
 
 
-@python_2_unicode_compatible
 class Client(models.Model):
     identity_provider = models.ForeignKey(IdentityProvider, on_delete=models.CASCADE)
     type = models.CharField(_('type'), max_length=255, choices=CLIENT_TYPES, default='web')
@@ -133,7 +130,6 @@ class Client(models.Model):
         return "%s - %s" % (self.identity_provider, self.get_type_display())
 
 
-@python_2_unicode_compatible
 class ApiClient(models.Model):
     identity_provider = models.ForeignKey(IdentityProvider, on_delete=models.CASCADE)
     client_id = models.CharField(_("client id"), max_length=255)
@@ -146,7 +142,6 @@ class ApiClient(models.Model):
         return "%s - %s" % (self.identity_provider, self.client_id)
 
 
-@python_2_unicode_compatible
 class Nonce(models.Model):
     value = models.CharField(_("value"), db_index=True, max_length=12, default=get_random_string)
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
@@ -159,7 +154,6 @@ class Nonce(models.Model):
         return self.value
 
 
-@python_2_unicode_compatible
 class CodeVerifier(models.Model):
     value = models.CharField(_("value"), db_index=True, max_length=128, default=partial(get_random_string, length=128))
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
@@ -181,7 +175,6 @@ class CodeVerifier(models.Model):
         return 'S256'
 
 
-@python_2_unicode_compatible
 class Organisation(models.Model):
     name = models.CharField(_("name"), max_length=255)
     uuid = models.CharField(_("uuid"), unique=True, max_length=36)  # UUIDField(version=4, unique=True, editable=True)
@@ -190,7 +183,6 @@ class Organisation(models.Model):
         return self.name
 
 
-@python_2_unicode_compatible
 class User(AbstractBaseUser, PermissionsMixin):
     unique_name = models.CharField(_('unique name'), unique=True, max_length=255)
     uuid = models.CharField(_("uuid"), max_length=36)  # hex value of uuid
@@ -258,7 +250,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.username
 
 
-@python_2_unicode_compatible
 class AccessToken(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -274,7 +265,6 @@ class AccessToken(models.Model):
         return Truncator(self.token).chars(30)
 
 
-@python_2_unicode_compatible
 class RefreshToken(models.Model):
     access_token = models.OneToOneField(AccessToken, related_name='refresh_token', on_delete=models.CASCADE)
     token = models.CharField(_("token"), max_length=2048)
@@ -283,7 +273,6 @@ class RefreshToken(models.Model):
         return self.token
 
 
-@python_2_unicode_compatible
 class IdToken(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -329,7 +318,6 @@ class IdToken(models.Model):
         return Truncator(self.content).chars(20)
 
 
-@python_2_unicode_compatible
 class Role(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE)
 
