@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.conf.urls import include
-from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import path
 from django.views.generic import RedirectView
 
@@ -17,5 +16,3 @@ urlpatterns = [
     path('oauth2/', include('client.oauth2.urls')),
     path('admin/', admin.site.urls),
 ]
-
-urlpatterns += staticfiles_urlpatterns()
