@@ -1,7 +1,7 @@
 import json
-from datetime import timedelta
 from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
 
+from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login, logout as auth_logout, authenticate
@@ -282,7 +282,8 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             else:
                 code_verifier = None
 
-            user = authenticate(client=client, code=code, redirect_uri=redirect_uri, session_state=session_state, code_verifier=code_verifier)
+            user = authenticate(client=client, code=code, redirect_uri=redirect_uri, session_state=session_state,
+                                code_verifier=code_verifier)
 
             auth_login(request, user)
 
