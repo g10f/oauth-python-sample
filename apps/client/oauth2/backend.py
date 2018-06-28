@@ -107,7 +107,8 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
                     logger.error(e)
         else:
             options['verify_signature'] = False
-            id_token_content = decode(content['id_token'], audience=client.client_id, options=options)
+            id_token_content = decode(content['id_token'], audience=client.client_id, options=options,
+                                      algorithms=get_default_algorithms())
 
         id_token_content['raw'] = content['id_token']
         if 'roles' in id_token_content:
@@ -195,7 +196,8 @@ def get_userinfo(access_token, uuid=None, http=None):
 
 
 class OAuth2Backend(ModelBackend):
-    def authenticate(self, client=None, code=None, redirect_uri=None, session_state=None, code_verifier=None, **kwargs):
+    def authenticate(self, request, client=None, code=None, redirect_uri=None, session_state=None, code_verifier=None,
+                     **kwargs):
         if not code:
             return None
 

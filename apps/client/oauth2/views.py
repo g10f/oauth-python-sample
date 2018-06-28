@@ -282,7 +282,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             else:
                 code_verifier = None
 
-            user = authenticate(client=client, code=code, redirect_uri=redirect_uri, session_state=session_state,
+            user = authenticate(request, client=client, code=code, redirect_uri=redirect_uri, session_state=session_state,
                                 code_verifier=code_verifier)
 
             auth_login(request, user)
