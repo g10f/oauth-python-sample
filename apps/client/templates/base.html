@@ -41,9 +41,9 @@
             <div class="col-md-3 col-sm-4">
                 <div class="list-group">              
                     <a class="{% active 'home' %} list-group-item" href="{% url 'home' %}"><i class="glyphicon glyphicon-home"></i> {% trans 'Home' %}</a>
-                    <a class="{% active 'login' %} list-group-item" href="{% url 'login' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Log in for web apps' %}</a>
-                    <a class="{% active 'login_installed' %} list-group-item" href="{% url 'login_installed' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Log in for installed apps' %}</a>
-                    <a class="{% active 'userinfo_client' %} list-group-item" href="{% url 'userinfo_client' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Log in for javascript apps' %}</a>
+                    <a class="{% active 'login' %} list-group-item" href="{% url 'login' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Code/Hybrid Flow Login' %}</a>
+                    {# <a class="{% active 'login_installed' %} list-group-item" href="{% url 'login_installed' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Log in with for installed apps' %}</a> #}
+                    <a class="{% active 'userinfo_client' %} list-group-item" href="{% url 'userinfo_client' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Implicit Flow Login' %}</a>
                     <a class="{% active 'userinfo_me' %} list-group-item" href="{% url 'userinfo_me' %}"><i class="glyphicon glyphicon-user"></i> {% trans 'About me' %}</a>
                     {% if user.is_staff %}
                     <a class="list-group-item" href="{% url 'admin:index' %}"><i class="glyphicon glyphicon-wrench"></i> {% trans 'Administration' %}</a>

@@ -1,10 +1,10 @@
 import base64
 import hashlib
 import json
+from datetime import datetime
 from functools import partial
 
 import requests
-from datetime import datetime
 from django.conf import settings
 from django.contrib.auth.models import UserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from django.db import models
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+from django.utils.functional import lazystr
 from django.utils.http import urlquote
 from django.utils.text import Truncator
 from django.utils.translation import ugettext_lazy as _
@@ -49,8 +50,8 @@ def update_object_from_dict(destination, source_dict, key_mapping=None):
 
 
 class IdentityProvider(models.Model):
-    issuer = models.CharField(_("issuer"), max_length=255, blank=True)  # ok
-    name = models.CharField(_("name"), max_length=255)
+    issuer = models.CharField(_("issuer"), max_length=255, blank=True)
+    name = models.CharField(_("name"), max_length=255, unique=True)
     uri = models.URLField(_('Home url'), blank=True, default='', max_length=2048)
     authorization_endpoint = models.URLField(_('authentication uri'), max_length=2048)
     token_endpoint = models.URLField(_('token uri'), max_length=2048)
@@ -82,7 +83,7 @@ class IdentityProvider(models.Model):
         cache_key = '%s.pub_keys' % self.jwks_uri
         pub_keys = cache.get(cache_key)
         if pub_keys is None:
-            r = requests.get(self.jwks_uri)
+            r = requests.get(self.jwks_uri, verify=self.is_secure)
             pks = r.json()
             pub_keys = []
             for key in pks['keys']:
@@ -99,14 +100,16 @@ class IdentityProvider(models.Model):
 CLIENT_TYPES = [
     ('web', _('Web Application')),  # response_type=code  grant_type=authorization_code or refresh_token
     ('javascript', _('Javascript Application')),  # response_type=token
-    ('native', _('Native Application')),
-    # response_type=code  grant_type=authorization_code or refresh_token redirect_uris=http://localhost or  urn:ietf:wg:oauth:2.0:oob
+    ('native', _('Native Application')),  # response_type=code  grant_type=authorization_code or refresh_token
+    # redirect_uris=http://localhost or  urn:ietf:wg:oauth:2.0:oob
     ('service', _('Service Account')),  # grant_type=client_credentials
     ('trusted', _('Trusted Client'))  # grant_type=password
 ]
 
 
 class Client(models.Model):
+    name = models.CharField(_("name"), max_length=255, blank=True)
+    response_type = models.CharField(_("response type"), blank=True, max_length=255)
     identity_provider = models.ForeignKey(IdentityProvider, on_delete=models.CASCADE)
     type = models.CharField(_('type'), max_length=255, choices=CLIENT_TYPES, default='web')
     default_scopes = models.CharField(_("default scopes"), blank=True, max_length=2048)
@@ -118,16 +121,29 @@ class Client(models.Model):
     max_age = models.DurationField(_("max_age"), blank=True, null=True)
     acr_values = models.CharField(_("acr_values"), blank=True, max_length=255)
     use_pkce = models.BooleanField(_('use PKCE'), default=False)
-
-    #  client.type == 'native' and not client.client_secret:
+    redirect_uri = models.CharField(_("redirect uri"), default=lazystr(settings.LOGIN_URL), blank=True,
+                                    max_length=2048)
+    ui_locales = models.CharField(
+        _("ui locales"), blank=True, max_length=255,
+        help_text=_('See http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest'))
+    claims_locales = models.CharField(
+        _("claims locales"), blank=True, max_length=255,
+        help_text=_('See http://openid.net/specs/openid-connect-core-1_0.html#ClaimsLanguagesAndScripts'))
+    prompt = models.CharField(
+        _("prompt"), blank=True, max_length=255,
+        help_text=_('See http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest'))
+    # client.type == 'native' and not client.client_secret:
     # redirect_uri = models.URLField(_('redirect uri for native app'), blank=True, max_length=2048)
 
     class Meta:
         ordering = ['identity_provider', 'type']
-        unique_together = (("identity_provider", "type"),)
+        # unique_together = (("identity_provider", "type"),)
 
     def __str__(self):
-        return "%s - %s" % (self.identity_provider, self.get_type_display())
+        return "%s - %s" % (self.name, self.identity_provider)
+
+    def get_redirect_uri(self, request):
+        return request.build_absolute_uri(self.redirect_uri)
 
 
 class ApiClient(models.Model):
@@ -300,8 +316,10 @@ class IdToken(models.Model):
             auth_time = timezone.make_aware(datetime.utcfromtimestamp(id_token_content['auth_time']), timezone.utc)
         else:
             auth_time = None
+        raw = id_token_content['raw']
+        del id_token_content['raw']
         obj = cls(client=client,
-                  raw=id_token_content['raw'],
+                  raw=raw,
                   aud=id_token_content['aud'],
                   exp=timezone.make_aware(datetime.utcfromtimestamp(id_token_content['exp']), timezone.utc),
                   iat=timezone.make_aware(datetime.utcfromtimestamp(id_token_content['iat']), timezone.utc),

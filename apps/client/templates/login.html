@@ -38,7 +38,11 @@
 
 
     {% for  authentication in authentications %}
-        <p><a class="btn btn-{% if authentication.id == user.identity_provider.id %}success{% else %}primary{% endif %}" href="{{ authentication.uri }}"><span class="glyphicon glyphicon-user"></span>  {% blocktrans with name=authentication.name %}Log in with {{ name }}{% endblocktrans %}</a></p>
+        <p>
+            <a id="{{ authentication.id }}" class="btn btn-{% if authentication.identity_provider_id == user.identity_provider.id %}success{% else %}primary{% endif %}" href="{{ authentication.uri }}">
+                <span class="glyphicon glyphicon-user"></span>  {% blocktrans with name=authentication.name %}Log in with {{ name }}{% endblocktrans %}
+            </a>
+        </p>
     {% endfor %}
 
 

@@ -1,18 +1,21 @@
 import json
 import logging
 import warnings
+from base64 import b64encode
 from json import JSONDecodeError
 from urllib.parse import urlsplit, parse_qsl, urlunsplit
 
 import requests
+from django.conf import settings
 from django.contrib.auth.backends import ModelBackend
 from django.http import QueryDict
 from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.timezone import now
-from jwt import decode, InvalidTokenError
-from jwt.algorithms import get_default_algorithms
+from jwt import decode, InvalidSignatureError
+from jwt.algorithms import get_default_algorithms, RSAAlgorithm, HMACAlgorithm
 
+from client.oauth2.logging import debug_requests
 from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken
 from client.oauth2.utils import OAuth2Error
 
@@ -38,19 +41,27 @@ def url_update(url, param_dict):
 
 
 def get_tokens_from_code(client, code, code_verifier, redirect_uri):
+    headers = {'content-type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
     query = {
         'grant_type': 'authorization_code',
-        'client_id': client.client_id,
-        'client_secret': client.client_secret,
         'code': code,
         'redirect_uri': redirect_uri
     }
     if client.use_pkce:
         query['code_verifier'] = '%s' % code_verifier
+    if client.client_secret:
+        auth = b"%s:%s" % (client.client_id.encode(), client.client_secret.encode())
+        headers['authorization'] = '%s %s' % ('Basic', b64encode(auth).decode("ascii"))
+    else:
+        query['client_id'] = client.client_id
 
-    headers = {'content-type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
-    r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
-                      verify=client.identity_provider.is_secure)
+    if settings.DEBUG:
+        with debug_requests():
+            r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
+                          verify=client.identity_provider.is_secure)
+    else:
+        r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
+                          verify=client.identity_provider.is_secure)
 
     if r.status_code >= 400:
         raise OAuth2Error(r.text, r.status_code)
@@ -96,15 +107,21 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
         if client.identity_provider.jwks_uri:
             options['verify_signature'] = True
             jwks = client.identity_provider.jwks
+            id_token_content = None
             for jwk in jwks:
-                alg_obj = get_default_algorithms()[jwk['alg']]
-                key = alg_obj.from_jwk(json.dumps(jwk))
+                if jwk['kty'] == 'RSA':
+                    key = RSAAlgorithm.from_jwk(json.dumps(jwk))
+                elif jwk['kty'] == 'oct':
+                    key = HMACAlgorithm.from_jwk(json.dumps(jwk))
+                else:
+                    raise OAuth2Error('kty %s is not supported' % jwk['kty'], 'invalid_kty')
                 try:
-                    id_token_content = decode(content['id_token'], key=key, audience=client.client_id,
-                                              options=options)
+                    id_token_content = decode(content['id_token'], key=key, audience=client.client_id, options=options)
                     break
-                except InvalidTokenError as e:
-                    logger.error(e)
+                except InvalidSignatureError:
+                    pass
+            if id_token_content is None:
+                raise InvalidSignatureError()
         else:
             options['verify_signature'] = False
             id_token_content = decode(content['id_token'], audience=client.client_id, options=options,

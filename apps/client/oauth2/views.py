@@ -107,9 +107,15 @@ def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None
     if client.claims:
         query['claims'] = client.claims.encode('ascii')
     if client.max_age:
-        query['max_age'] = client.max_age.seconds
+        query['max_age'] = str(client.max_age.seconds)
     if client.acr_values:
         query['acr_values'] = client.acr_values
+    if client.ui_locales:
+        query['ui_locales'] = client.ui_locales
+    if client.claims_locales:
+        query['claims_locales'] = client.claims_locales
+    if client.prompt:
+        query['prompt'] = client.prompt
 
     # PKCE
     if client.use_pkce:
@@ -253,23 +259,26 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
     # The original url from the client the user  requested
     next_url = request.POST.get(redirect_field_name, request.GET.get(redirect_field_name, ''))
     # Ensure the user-originating redirection url is safe.
-    if not is_safe_url(url=next_url, host=request.get_host()):
+    if not is_safe_url(url=next_url, allowed_hosts={request.get_host()}):
         next_url = resolve_url(settings.LOGIN_REDIRECT_URL)
 
     code = request.GET.get('code')  # OAuth 2
     error = request.GET.get('error')  # OAuth 2
+    error_description = request.GET.get('error_description')  # OAuth 2
     redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL))
 
     authentications = []
     for client in Client.objects.filter(identity_provider__is_active=True, is_active=True, type='web'):
-        uri = get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri,
+        uri = get_oauth2_authentication_uri(client, response_type='code',
+                                            redirect_uri=client.get_redirect_uri(request),
                                             data={'next': next_url})
-        authentications.append({'name': client.identity_provider.name, 'uri': uri, 'id': client.identity_provider.id})
+        authentications.append({'name': client, 'uri': uri, 'identity_provider_id': client.identity_provider.id,
+                                'id': client.id})
     state = {}
     try:
         state = get_state(request)
         if error:
-            raise OAuth2Error(error, 'error', state=state)
+            raise OAuth2Error(error_description, error, state=state)
 
         if code:
             # oauth2 session management
@@ -336,8 +345,8 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
     """
     redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
     next_url = request.POST.get(redirect_field_name, request.GET.get(redirect_field_name, ''))
-    # Ensure the user-o riginating redirection url is safe.
-    if not is_safe_url(url=next_url, host=request.get_host()):
+    # Ensure the user-originating redirection url is safe.
+    if not is_safe_url(url=next_url, allowed_hosts={request.get_host()}):
         next_url = resolve_url(settings.LOGIN_REDIRECT_URL)
 
     if request.user.is_authenticated:

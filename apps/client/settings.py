@@ -19,7 +19,8 @@ else:
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
+# ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
+ALLOWED_HOSTS = ['*']
 
 DEBUG = os.environ.get('DEBUG', DEBUG)
 INTERNAL_IPS = ('127.0.0.1',)
@@ -82,7 +83,7 @@ AUTHENTICATION_BACKENDS = (
 
 AUTH_USER_MODEL = 'oauth2.User'
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies' 
-SESSION_COOKIE_AGE = 60 * 10  # seconds * Minutes
+# SESSION_COOKIE_AGE = 60 * 10  # seconds * Minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # Additional locations of static files
