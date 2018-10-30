@@ -3,6 +3,7 @@ import logging
 
 from django.contrib import auth
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
@@ -41,7 +42,7 @@ class IterableLazyObject(SimpleLazyObject):
 def get_user_and_client_from_token(access_token):
     try:
         if not access_token:
-            return auth.models.AnonymousUser(), None, set()
+            return AnonymousUser(), None, set()
         data, idp = verify_signed_jwt(access_token)
         defaults = {'unique_name': "%s.%s" % (idp, data['sub'])}
         user = get_user_model().objects.get_or_create(uuid=data['sub'], identity_provider=idp, defaults=defaults)[0]
@@ -51,7 +52,7 @@ def get_user_and_client_from_token(access_token):
             scopes = set(data['scope'].split())
     except (ObjectDoesNotExist, signing.BadSignature, ValueError, InvalidTokenError) as e:
         logger.exception(e)
-        return auth.models.AnonymousUser(), None, set()
+        return AnonymousUser(), None, set()
     return user, client, scopes
 
 
@@ -88,7 +89,9 @@ def get_auth_data(request):
 class OAuthAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         assert hasattr(request,
-                       'session'), "The Django authentication middleware requires session middleware to be installed. Edit your MIDDLEWARE_CLASSES setting to insert 'django.contrib.sessions.middleware.SessionMiddleware'."
+                       'session'), "The Django authentication middleware requires session middleware to be installed." \
+                                   " Edit your MIDDLEWARE_CLASSES setting to insert 'django.contrib.sessions." \
+                                   "middleware.SessionMiddleware'."
 
         request.user = SimpleLazyObject(lambda: get_auth_data(request)[0])
         request.client = SimpleLazyObject(lambda: get_auth_data(request)[1])

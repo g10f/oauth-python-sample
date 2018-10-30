@@ -1,7 +1,7 @@
 import json
+from datetime import timedelta
 from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
 
-from datetime import timedelta
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login, logout as auth_logout, authenticate
@@ -88,6 +88,7 @@ def build_state(client, code_verifier, data=None):
 def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None, prompt=None, id_token_hint=None):
     if data is None:
         data = {}
+    data['client_id'] = client.id
 
     # PKCE
     if client.use_pkce:
@@ -273,7 +274,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                                             redirect_uri=client.get_redirect_uri(request),
                                             data={'next': next_url})
         authentications.append({'name': client, 'uri': uri, 'identity_provider_id': client.identity_provider.id,
-                                'id': client.id})
+                                'id': client.id, 'tooltip': client.tooltip})
     state = {}
     try:
         state = get_state(request)
@@ -291,13 +292,16 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             else:
                 code_verifier = None
 
-            user = authenticate(request, client=client, code=code, redirect_uri=redirect_uri, session_state=session_state,
+            user = authenticate(request, client=client, code=code, redirect_uri=redirect_uri,
+                                session_state=session_state,
                                 code_verifier=code_verifier)
 
             auth_login(request, user)
 
             if request.session.test_cookie_worked():
                 request.session.delete_test_cookie()
+            request.session['client_id'] = state['client_id']
+
             # oauth2 session management
             if next_url == reverse('session'):
                 return HttpResponseRedirect(next_url)

@@ -3,9 +3,10 @@ from functools import update_wrapper
 from django.contrib import admin
 from django.contrib.flatpages.admin import FlatPageAdmin
 from django.contrib.flatpages.models import FlatPage
-from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django.urls import reverse
+from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
@@ -16,6 +17,7 @@ class AdminSite(admin.sites.AdminSite):
     - redirecting to login instead of admin:login 
     - displaying an error message if the user is authenticated but has not admin access
     """
+    site_header = gettext_lazy('Administration')
 
     def admin_view(self, view, cacheable=False):
         def inner(request, *args, **kwargs):

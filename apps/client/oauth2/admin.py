@@ -68,14 +68,14 @@ class RefreshTokenAdmin(admin.ModelAdmin):
 
 
 class IdTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'client', 'aud', 'email', 'iss', 'sub', 'exp')
+    list_display = ('id', 'user', 'client', 'aud', 'iss', 'sub', 'exp')
     list_filter = ('client',)
 
 
 class IdentityProviderAdmin(admin.ModelAdmin):
     class Media:
         js = (
-            "js/openid-configuration-1.0.0.js",
+            "js/openid-configuration-1.0.1.js",
         )
 
     list_display = ('name', 'authorization_endpoint', 'token_endpoint', 'userinfo_endpoint', 'is_active')

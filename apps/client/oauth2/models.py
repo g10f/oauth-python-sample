@@ -132,11 +132,12 @@ class Client(models.Model):
     prompt = models.CharField(
         _("prompt"), blank=True, max_length=255,
         help_text=_('See http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest'))
+
     # client.type == 'native' and not client.client_secret:
     # redirect_uri = models.URLField(_('redirect uri for native app'), blank=True, max_length=2048)
 
     class Meta:
-        ordering = ['identity_provider', 'type']
+        ordering = ['identity_provider', 'name']
         # unique_together = (("identity_provider", "type"),)
 
     def __str__(self):
@@ -144,6 +145,19 @@ class Client(models.Model):
 
     def get_redirect_uri(self, request):
         return request.build_absolute_uri(self.redirect_uri)
+
+    @property
+    def tooltip(self):
+        t = {}
+
+        def add(*args):
+            for arg in args:
+                if getattr(self, arg):
+                    t[arg] = str(getattr(self, arg))
+
+        add('default_scopes', 'claims', 'max_age', 'acr_values', 'ui_locales', 'claims_locales', 'prompt', 'use_pkce')
+
+        return "{t}".format(t=t)
 
 
 class ApiClient(models.Model):
@@ -239,7 +253,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return full_name
 
     def get_short_name(self):
-        "Returns the short name for the user."
+        """Returns the short name for the user."""
         return self.first_name
 
     def email_user(self, subject, message, from_email=None):
@@ -251,8 +265,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def application_id(self):
         try:
-            return AccessToken.objects.filter(user=self,
-                                              client__identity_provider=self.identity_provider).latest().client.application_id
+            return AccessToken.objects.filter(user=self, client__identity_provider=self.identity_provider).latest().\
+                client.application_id
         except ObjectDoesNotExist:
             return ""
 
