@@ -3,11 +3,6 @@
 
 {% block title %}Client {% trans 'OAuth 2.0 for Client-side Applications' %}{% endblock %}
 
-{% block extrascript %}
-    <script src="{% static "js/plugins.js" %}"></script>
-    <script src="{% static "js/script-1.0.5.js" %}"></script>
-{% endblock extrascript %}
-
 {% block breadcrumb %}
     <ol class="breadcrumb">
         <li><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>

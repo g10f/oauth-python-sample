@@ -76,5 +76,7 @@
 <iframe title='empty' class="hidden" id='op' src='{{ user.get_identity_provider.check_session_iframe }}'></iframe>
 <iframe title='empty' class="hidden" id='rp' src='{% url 'session' %}'></iframe>
 {% endif %}
+    <script src="{% static "js/plugins.js" %}"></script>
+    <script src="{% static "js/script-1.0.6.js" %}"></script>
 </body>
 </html>

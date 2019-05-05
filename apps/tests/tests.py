@@ -23,10 +23,10 @@ class SSOSeleniumTests(StaticLiveServerTestCase):
 
     def login(self, username, password):
         driver = self.selenium
-        driver.find_element_by_id("username").send_keys(username)
-        driver.find_element_by_id("password").send_keys(password)
-
-        driver.find_element_by_tag_name("form").submit()
+        authpasswd = driver.find_element_by_id("authpasswd")
+        authpasswd.find_element_by_name("username").send_keys(username)
+        authpasswd.find_element_by_name("password").send_keys(password)
+        authpasswd.find_element_by_tag_name("form").submit()
 
         # Wait until the response is received
         self.wait_page_loaded()
