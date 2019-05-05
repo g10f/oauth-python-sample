@@ -13,6 +13,7 @@ from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
 from django.shortcuts import resolve_url, get_object_or_404
 from django.urls import reverse
+from django.utils.crypto import get_random_string
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_text
 from django.utils.http import is_safe_url, urlquote_plus
@@ -276,11 +277,10 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                                 'id': client.id})
     state = {}
     try:
-        state = get_state(request)
-        if error:
-            raise OAuth2Error(error_description, error, state=state)
-
         if code:
+            state = get_state(request)
+            if error:
+                raise OAuth2Error(error_description, error, state=state)
             # oauth2 session management
             session_state = request.GET.get('session_state', '')
             next_url = state['next']
@@ -354,9 +354,9 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
         auth_logout(request)
         if identity_provider:
             next_url = urlquote_plus(request.build_absolute_uri(next_url))
-            # TODO replace next with post_logout_redirect_uri 
-            # see http://openid.net/specs/openid-connect-session-1_0.html#RPLogout
-            redirect_to = "%s?next=%s" % (identity_provider.end_session_endpoint, next_url)
+            state = get_random_string()  # TODO: save state and check in the redirect from the IDP
+            redirect_to = "%s?post_logout_redirect_uri=%s&state=%s" %\
+                          (identity_provider.end_session_endpoint, next_url, state)
 
     return HttpResponseRedirect(redirect_to)
 
