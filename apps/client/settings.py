@@ -19,8 +19,10 @@ else:
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
+DEBUG_REQUESTS = False
 # ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
 ALLOWED_HOSTS = ['*']
+SILENCED_SYSTEM_CHECKS = ['admin.E408']
 
 DEBUG = os.environ.get('DEBUG', DEBUG)
 INTERNAL_IPS = ('127.0.0.1',)
@@ -93,11 +95,12 @@ STATICFILES_DIRS = (
 
 # List of finder classes that know how to find static files in
 # various locations.
-STATICFILES_FINDERS = (
+STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     # 'django.contrib.staticfiles.finders.DefaultStorageFinder',
-)
+]
+
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = os.environ.get('SECRET_KEY', '&amp;9w&amp;vwpc7uahoddb0e+^oyh#v@=hjemup0zb0t^8a++!r1lypp')
