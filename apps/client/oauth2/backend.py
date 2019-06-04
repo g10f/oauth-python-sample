@@ -55,7 +55,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     else:
         query['client_id'] = client.client_id
 
-    if settings.DEBUG:
+    if settings.DEBUG_REQUESTS:
         with debug_requests():
             r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
                           verify=client.identity_provider.is_secure)
@@ -116,7 +116,8 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
                 else:
                     raise OAuth2Error('kty %s is not supported' % jwk['kty'], 'invalid_kty')
                 try:
-                    id_token_content = decode(content['id_token'], key=key, audience=client.client_id, options=options)
+                    id_token_content = decode(content['id_token'], key=key, audience=client.client_id, options=options,
+                                              algorithms=get_default_algorithms())
                     break
                 except InvalidSignatureError:
                     pass
