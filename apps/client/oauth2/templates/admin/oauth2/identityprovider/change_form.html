@@ -2,6 +2,11 @@
 {% load i18n admin_static admin_modify %}
 {% load admin_urls %}
 
+{% block admin_change_form_document_ready %}
+    {{ block.super }}
+    <script type="text/javascript" src="{% static 'js/openid-configuration-1.0.2.js' %}"></script>
+{% endblock %}
+
 
 {% block submit_buttons_bottom %}
 <div class="submit-row">

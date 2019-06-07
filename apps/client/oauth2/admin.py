@@ -73,11 +73,6 @@ class IdTokenAdmin(admin.ModelAdmin):
 
 
 class IdentityProviderAdmin(admin.ModelAdmin):
-    class Media:
-        js = (
-            "js/openid-configuration-1.0.1.js",
-        )
-
     list_display = ('name', 'authorization_endpoint', 'token_endpoint', 'userinfo_endpoint', 'is_active')
     list_filter = ('client__type', 'is_supporting_http_auth_header')
 
