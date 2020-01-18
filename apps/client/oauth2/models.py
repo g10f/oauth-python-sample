@@ -283,7 +283,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class AccessToken(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    token = models.CharField(_("token"), max_length=2048)
+    token = models.CharField(_("token"), max_length=4096)
     type = models.CharField(_("type"), max_length=255)
     expires_at = models.DateTimeField(_('expires at'))
     scope = models.CharField(_("scope"), max_length=2048, blank=True)
@@ -459,7 +459,7 @@ def update_user(client, data):
             update_object_from_dict(organisation, organisation_data)
             organisations.append(organisation)
 
-        user.organisations = organisations
+        user.organisations.set(organisations)
 
     if client.identity_provider.check_roles:
         if not _has_access(data):

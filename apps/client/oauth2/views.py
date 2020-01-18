@@ -1,7 +1,11 @@
 import json
-from datetime import timedelta
 from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
 
+from datetime import timedelta
+
+from client.oauth2.backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update
+from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
+from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login, logout as auth_logout, authenticate
@@ -13,19 +17,14 @@ from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import render
 from django.shortcuts import resolve_url, get_object_or_404
 from django.urls import reverse
-from django.utils.crypto import get_random_string
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_text
-from django.utils.http import is_safe_url, urlquote_plus
+from django.utils.http import is_safe_url
 from django.utils.timezone import now
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.generic import TemplateView
 from django.views.generic.base import RedirectView
-
-from client.oauth2.backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update
-from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
-from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 
 
 def update_url(url, params):
@@ -278,8 +277,8 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                                 'id': client.id, 'tooltip': client.tooltip})
     state = {}
     try:
+        state = get_state(request)
         if code:
-            state = get_state(request)
             if error:
                 raise OAuth2Error(error_description, error, state=state)
             # oauth2 session management
@@ -315,6 +314,10 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             # Here for demonstration, the request from the OAuth2 provider is shown.
             # return HttpResponseRedirect(next_url)
         else:
+            next_url = state.get('next')
+            if next_url is not None:
+                return HttpResponseRedirect(next_url)
+
             return render(request, 'login.html', context={'authentications': authentications})
             # In production you can redirect to the authentication uri from the OAuth2 provider.
             # Here for demonstration, the authentication uri to the OAuth2 provider is shown.
@@ -347,20 +350,23 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
     """
     Logs out the user and displays 'You are logged out' message.
     """
-    redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
-    next_url = request.POST.get(redirect_field_name, request.GET.get(redirect_field_name, ''))
-    # Ensure the user-originating redirection url is safe.
-    if not is_safe_url(url=next_url, allowed_hosts={request.get_host()}):
-        next_url = resolve_url(settings.LOGIN_REDIRECT_URL)
+    next_url = request.GET.get(redirect_field_name)
+    data = {}
+    if next_url and is_safe_url(url=next_url, allowed_hosts={request.get_host()}):
+        data['next'] = next_url
 
     if request.user.is_authenticated:
         identity_provider = request.user.identity_provider
+        client = Client.objects.get(identity_provider=request.user.identity_provider, type='web')
+        id_token = IdToken.objects.filter(user=request.user, client=client).latest()
         auth_logout(request)
         if identity_provider:
-            next_url = urlquote_plus(request.build_absolute_uri(next_url))
-            state = get_random_string()  # TODO: save state and check in the redirect from the IDP
-            redirect_to = "%s?post_logout_redirect_uri=%s&state=%s" %\
-                          (identity_provider.end_session_endpoint, next_url, state)
+            state = build_state(client, code_verifier=None, data=data)
+            post_logout_redirect_uri = request.build_absolute_uri(resolve_url(settings.LOGIN_REDIRECT_URL))
+            redirect_to = update_url(identity_provider.end_session_endpoint,
+                                     {'post_logout_redirect_uri': post_logout_redirect_uri,
+                                      'state': state,
+                                      'id_token_hint': id_token.raw})
 
     return HttpResponseRedirect(redirect_to)
 

@@ -1,25 +1,44 @@
 import json
-import logging
 import warnings
 from base64 import b64encode
 from json import JSONDecodeError
 from urllib.parse import urlsplit, parse_qsl, urlunsplit
 
+import logging
 import requests
-from django.conf import settings
-from django.contrib.auth.backends import ModelBackend
-from django.http import QueryDict
-from django.utils import timezone
-from django.utils.http import urlencode
-from django.utils.timezone import now
 from jwt import decode, InvalidSignatureError
 from jwt.algorithms import get_default_algorithms, RSAAlgorithm, HMACAlgorithm
 
 from client.oauth2.logging import debug_requests
 from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken
 from client.oauth2.utils import OAuth2Error
+from django.conf import settings
+from django.contrib.auth.backends import ModelBackend
+from django.http import QueryDict
+from django.utils import timezone
+from django.utils.http import urlencode
+from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
+
+
+def update_url(url, params):
+    """Given a URL, add or update query parameter and return the
+    modified URL.
+
+    >>> update_url('http://example.com?foo=bar&biz=baz', {'foo': 'stuff', 'new': 'val'})
+    'http://example.com?foo=stuff&biz=baz&new=val'
+
+    """
+    (scheme, netloc, path, query, fragment) = urlsplit(url)
+    q = QueryDict(query, mutable=True)
+
+    for k, v in params.items():
+        if v is not None:  # filter out None values
+            q[k] = v
+
+    new_query_string = q.urlencode(safe='/')
+    return urlunsplit((scheme, netloc, path, new_query_string, fragment))
 
 
 def replace_or_add_query_param(url, attr, val):
@@ -58,7 +77,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     if settings.DEBUG_REQUESTS:
         with debug_requests():
             r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
-                          verify=client.identity_provider.is_secure)
+                              verify=client.identity_provider.is_secure)
     else:
         r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
                           verify=client.identity_provider.is_secure)
