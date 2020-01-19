@@ -351,6 +351,7 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
     Logs out the user and displays 'You are logged out' message.
     """
     next_url = request.GET.get(redirect_field_name)
+    redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
     data = {}
     if next_url and is_safe_url(url=next_url, allowed_hosts={request.get_host()}):
         data['next'] = next_url
