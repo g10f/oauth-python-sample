@@ -297,7 +297,7 @@ class AccessToken(models.Model):
 
 class RefreshToken(models.Model):
     access_token = models.OneToOneField(AccessToken, related_name='refresh_token', on_delete=models.CASCADE)
-    token = models.CharField(_("token"), max_length=2048)
+    token = models.TextField(_("token"))
 
     def __str__(self):
         return self.token
