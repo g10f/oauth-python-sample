@@ -283,7 +283,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 class AccessToken(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    token = models.CharField(_("token"), max_length=4096)
+    token = models.CharField(_("token"), max_length=8192)
     type = models.CharField(_("type"), max_length=255)
     expires_at = models.DateTimeField(_('expires at'))
     scope = models.CharField(_("scope"), max_length=2048, blank=True)
