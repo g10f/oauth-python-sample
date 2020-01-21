@@ -58,7 +58,8 @@
                     <td>{{ key }}</td>
                     <td>
                         {% if key == 'picture' %}
-                            <image src="{{ value }}" width="100px"/>
+                            <img src="{{ value }}" width="100px" alt="user image">
+
                         {% elif key == 'applications' %}
                             <ul>
                                 {% for app in value %}

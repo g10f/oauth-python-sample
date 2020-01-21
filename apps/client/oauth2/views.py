@@ -148,7 +148,6 @@ def get_oauth2_authentication_uri_from_name(request):
             return None
         else:
             client = get_object_or_404(Client, identity_provider__issuer=issuer, is_active=True, type='web')
-            # client = get_object_or_404(Client.objects.get_object_or_404(identity_provider__issuer=issuer, is_active=True, type='web')
             next_url = request.get_full_path()
             redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL))
             return get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri,
@@ -177,7 +176,7 @@ class SessionView(TemplateView):
                                                                              id_token_hint=id_token.raw)
                 context['session_state'] = id_token.session_state
                 context['client_id'] = client.client_id
-                context['origin'] = user.identity_provider.issuer
+                context['origin'] = "{0.scheme}://{0.netloc}/".format(urlsplit(user.identity_provider.issuer))
         except ObjectDoesNotExist:
             pass
         return context
