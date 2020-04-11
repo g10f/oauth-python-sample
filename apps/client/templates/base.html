@@ -11,8 +11,7 @@
     {% endblock style %}    
     <link rel="shortcut icon" href="{% static "ico/favicon.ico" %}">
     {% block extrahead %}{% endblock extrahead %}
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
-    <script>window.jQuery || document.write('<script src="{% static "js/vendor/jquery-3.3.1.min.js" %}"><\/script>')</script>
+    <script src="{% static "js/vendor/jquery-3.5.0.min.js" %}"></script>
     <script src="{% static "js/vendor/bootstrap-3.3.4.min.js" %}"></script>
     <script>window.__media_prefix__ = "{% filter escapejs %}{% static "" %}{% endfilter %}";</script>
     <script src="{% static "js/global-nav-1.0.9.js" %}"></script>
@@ -25,7 +24,6 @@
 </head>
 <body>
     {% block body %}
-    <!--[if lt IE 8]><p class=alert alert-warning>Your browser is <em>ancient!</em> <a href="http://browsehappy.com/">Upgrade to a different browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to experience this site.</p><![endif]-->
     {% block navbar %}
     {% include "includes/global_navigation.html" %}
     {% include 'includes/noscript.html' %} 
@@ -70,13 +68,11 @@
       {% endblock footer %}
     </div> <!-- /container -->
     {% endblock body %}
-<!-- UserVoice JavaScript SDK (only needed once on a page) -->
-<script>(function(){var uv=document.createElement('script');uv.type='text/javascript';uv.async=true;uv.src='//widget.uservoice.com/NXn6Yc2C5wcPqO0JQXKig.js';var s=document.getElementsByTagName('script')[0];s.parentNode.insertBefore(uv,s)})()</script>
 {% if user.get_identity_provider.check_session_iframe %}
 <iframe title='empty' class="hidden" id='op' src='{{ user.get_identity_provider.check_session_iframe }}'></iframe>
 <iframe title='empty' class="hidden" id='rp' src='{% url 'session' %}'></iframe>
 {% endif %}
     <script src="{% static "js/plugins.js" %}"></script>
-    <script src="{% static "js/script-1.0.6.js" %}"></script>
+    <script src="{% static "js/script-1.1.0.js" %}"></script>
 </body>
 </html>
