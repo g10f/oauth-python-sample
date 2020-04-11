@@ -1,7 +1,6 @@
 import json
-from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
-
 from datetime import timedelta
+from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
 
 from client.oauth2.backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update
 from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
@@ -358,15 +357,21 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
     if request.user.is_authenticated:
         identity_provider = request.user.identity_provider
         client = Client.objects.get(identity_provider=request.user.identity_provider, type='web')
-        id_token = IdToken.objects.filter(user=request.user, client=client).latest()
+        try:
+            id_token = IdToken.objects.filter(user=request.user, client=client).latest()
+        except IdToken.DoesNotExist:
+            id_token = None
         auth_logout(request)
         if identity_provider:
             state = build_state(client, code_verifier=None, data=data)
             post_logout_redirect_uri = request.build_absolute_uri(resolve_url(settings.LOGIN_REDIRECT_URL))
+            params = {'post_logout_redirect_uri': post_logout_redirect_uri,
+                      'state': state}
+            if id_token:
+                params['id_token_hint'] = id_token.raw
+
             redirect_to = update_url(identity_provider.end_session_endpoint,
-                                     {'post_logout_redirect_uri': post_logout_redirect_uri,
-                                      'state': state,
-                                      'id_token_hint': id_token.raw})
+                                     params)
 
     return HttpResponseRedirect(redirect_to)
 
