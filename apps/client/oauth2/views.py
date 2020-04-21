@@ -356,14 +356,14 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
     if request.user.is_authenticated:
         identity_provider = request.user.identity_provider
-        client = Client.objects.get(identity_provider=request.user.identity_provider, type='web')
         try:
-            id_token = IdToken.objects.filter(user=request.user, client=client).latest()
+            id_token = IdToken.objects.filter(user=request.user,
+                                              client__identity_provider=identity_provider).latest()
         except IdToken.DoesNotExist:
             id_token = None
         auth_logout(request)
-        if identity_provider:
-            state = build_state(client, code_verifier=None, data=data)
+        if identity_provider and id_token:
+            state = build_state(id_token.client, code_verifier=None, data=data)
             post_logout_redirect_uri = request.build_absolute_uri(resolve_url(settings.LOGIN_REDIRECT_URL))
             params = {'post_logout_redirect_uri': post_logout_redirect_uri,
                       'state': state}
