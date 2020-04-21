@@ -6,13 +6,13 @@
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {% block style %} 
-    <link rel="stylesheet" href="{% block stylesheet %}{% static "css/style-1.0.5.css" %}{% endblock %}">
+    <link rel="stylesheet" href="{% block stylesheet %}{% static "css/style-1.0.6.css" %}{% endblock %}">
     {% block extrastyle %}{% endblock extrastyle %}
     {% endblock style %}    
     <link rel="shortcut icon" href="{% static "ico/favicon.ico" %}">
     {% block extrahead %}{% endblock extrahead %}
-    <script src="{% static "js/vendor/jquery-3.5.0.min.js" %}"></script>
-    <script src="{% static "js/vendor/bootstrap-3.3.4.min.js" %}"></script>
+    <script src="{% static "js/vendor/jquery-3.4.1.min.js" %}"></script>
+    <script src="{% static "js/vendor/bootstrap-3.4.1.min.js" %}"></script>
     <script>window.__media_prefix__ = "{% filter escapejs %}{% static "" %}{% endfilter %}";</script>
     <script src="{% static "js/global-nav-1.0.9.js" %}"></script>
     {% block extrascript %}{% endblock extrascript %}
@@ -20,7 +20,7 @@
     <!--[if lt IE 9]>
       <script src="{% static "js/vendor/html5shiv-3.7.2.js" %}"></script>
       <script src="{% static "js/vendor/respond-1.4.2.min.js" %}"></script>
-    <![endif]-->        
+    <![endif]-->
 </head>
 <body>
     {% block body %}
