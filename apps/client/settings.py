@@ -175,13 +175,11 @@ INSTALLED_APPS = (
 )
 
 DEFAULT_FROM_EMAIL = 'webmaster@g10f.de'
-SERVER_EMAIL = 'noreply@g10f.de'
+SERVER_EMAIL = 'webmaster@g10f.de'
 
 # Configure logging
-if DEBUG:
-    LOGGING_LEVEL = 'DEBUG'
-else:
-    LOGGING_LEVEL = 'INFO'
+ERROR_LOGFILE = "../../logs/oauth-error.log"
+INFO_LOGFILE = "../../logs/oauth-info.log"
 
 LOGGING = {
     'version': 1,
@@ -196,55 +194,58 @@ LOGGING = {
     },
     'filters': {
         'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse',
+            '()': 'django.utils.log.RequireDebugFalse'
         },
         'require_debug_true': {
             '()': 'django.utils.log.RequireDebugTrue',
         },
     },
     'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'filters': ['require_debug_true'],
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple'
-        },
-        'null': {
-            'class': 'logging.NullHandler',
-        },
         'mail_admins': {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler',
+            'formatter': 'simple',
+        },
+        'error': {
+            'level': 'WARNING',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, ERROR_LOGFILE),
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'debug': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, INFO_LOGFILE),
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
             'formatter': 'verbose',
         },
     },
     'loggers': {
         'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
-            'propagate': True,
+            'handlers': ['mail_admins', 'error', 'debug'],
+            'level': 'WARNING',
+            'propagate': False,
         },
         'oauth2': {
-            'handlers': ['console', 'mail_admins'],
-            'level': 'DEBUG',
+            'handlers': ['mail_admins', 'error', 'debug'],
+            'level': 'INFO',
             'propagate': False,
         },
         'django.db.backends': {
-            'handlers': ['console'],
+            'handlers': ['error', 'debug'],
+            'level': 'WARNING',
             'propagate': False,
-            'level': 'WARNING',
-        },
-        'py.warnings': {
-            'handlers': ['console'],
-            'level': 'WARNING',
         },
         'sorl': {
             'level': 'WARNING',
         }
     },
     'root': {
-        'level': LOGGING_LEVEL,
-        'handlers': ['console', 'mail_admins'],
+        'level': 'INFO',
+        'handlers': ['mail_admins', 'error', 'debug'],
     },
 }
