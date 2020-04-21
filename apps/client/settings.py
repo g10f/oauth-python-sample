@@ -174,12 +174,13 @@ INSTALLED_APPS = (
     'client',
 )
 
+DEFAULT_FROM_EMAIL = 'webmaster@g10f.de'
+SERVER_EMAIL = 'noreply@g10f.de'
+
 # Configure logging
 if DEBUG:
     LOGGING_LEVEL = 'DEBUG'
 else:
-    DEFAULT_FROM_EMAIL = 'webmaster@g10f.de'
-    SERVER_EMAIL = 'noreply@g10f.de'
     LOGGING_LEVEL = 'INFO'
 
 LOGGING = {
@@ -243,7 +244,7 @@ LOGGING = {
         }
     },
     'root': {
-        'level': 'DEBUG',
+        'level': LOGGING_LEVEL,
         'handlers': ['console', 'mail_admins'],
     },
 }
