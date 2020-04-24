@@ -165,10 +165,11 @@ class SessionView(TemplateView):
         context['error'] = self.request.GET.get('error', '')
         try:
             if user.is_authenticated:
-                client = Client.objects.get(identity_provider=user.identity_provider, type='web')
+                id_token = IdToken.objects.filter(user=user,
+                                                  client__identity_provider=user.identity_provider).latest()
+                client = id_token.client
                 redirect_uri = self.request.build_absolute_uri(force_text(settings.LOGIN_URL))
                 next_url = reverse('session')
-                id_token = IdToken.objects.filter(user=user, client=client).latest()
                 context['refresh_token_url'] = get_oauth2_authentication_uri(client, response_type='code',
                                                                              redirect_uri=redirect_uri,
                                                                              data={'next': next_url}, prompt='none',
