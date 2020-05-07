@@ -158,9 +158,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     return access_token, id_token_content, refresh_token
 
 
-def refresh_access_token(access_token, http=None):
-    if http is not None:
-        warnings.warn('http Parameter will be removed', DeprecationWarning)
+def refresh_access_token(access_token,):
 
     client = access_token.client
     query = {
@@ -170,22 +168,29 @@ def refresh_access_token(access_token, http=None):
         'refresh_token': access_token.refresh_token
     }
 
-    body = urlencode(query)
-    response, content = http.request(client.identity_provider.token_endpoint, method='POST', body=body,
+    # body = urlencode(query)
+    r = requests.post(client.identity_provider.token_endpoint, data=query,
                                      headers={'content-type': 'application/x-www-form-urlencoded',
                                               'Accept': 'application/json'})
+    if r.status_code >= 400:
+        raise OAuth2Error(r.text, r.status_code)
 
-    content_type = response.get('content-type', '').split(';')[0]
+    content_type = r.headers.get('content-type', '').split(';')[0]
 
-    if content_type == "text/plain":  # facebook returns the data as text
-        content = dict(parse_qsl(content))
-    else:
-        content = json.loads(content)
+    try:
+        if content_type == "text/plain":  # facebook returns the data as text
+            content = dict(parse_qsl(r.text))
+        else:
+            content = r.json()
 
-    if content.get('error'):
-        message = content.get('error_description')
-        error = content.get('error')
-        raise OAuth2Error(message, error)
+        if content.get('error'):
+            message = content.get('error_description')
+            error = content.get('error')
+            raise OAuth2Error(message, error)
+
+    except JSONDecodeError as e:
+        logger.error(e)
+        raise OAuth2Error('', e)
 
     expires_in = content.get('expires_in', 3600)
     access_token.token = content['access_token']
