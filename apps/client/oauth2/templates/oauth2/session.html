@@ -27,7 +27,9 @@
 	    
 	    var receiveMessage = function(e) {
 	        console.log('receiveMessage: ' + e.data + ' from ' + e.origin);
-	        if (e.origin !== targetOrigin ) {
+	        let url = new URL(e.origin);
+	        origin = url.protocol + "//" + url.host
+	        if (origin !== targetOrigin ) {
 	            console.log('receiveMessage: cross-site scripting attack?');
 	            return;
 	        }	        

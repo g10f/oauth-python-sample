@@ -1,10 +1,9 @@
 import json
-import warnings
+import logging
 from base64 import b64encode
 from json import JSONDecodeError
 from urllib.parse import urlsplit, parse_qsl, urlunsplit
 
-import logging
 import requests
 from jwt import decode, InvalidSignatureError
 from jwt.algorithms import get_default_algorithms, RSAAlgorithm, HMACAlgorithm
@@ -16,7 +15,6 @@ from django.conf import settings
 from django.contrib.auth.backends import ModelBackend
 from django.http import QueryDict
 from django.utils import timezone
-from django.utils.http import urlencode
 from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
@@ -158,8 +156,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     return access_token, id_token_content, refresh_token
 
 
-def refresh_access_token(access_token,):
-
+def refresh_access_token(access_token, ):
     client = access_token.client
     query = {
         'grant_type': 'refresh_token',
@@ -170,8 +167,8 @@ def refresh_access_token(access_token,):
 
     # body = urlencode(query)
     r = requests.post(client.identity_provider.token_endpoint, data=query,
-                                     headers={'content-type': 'application/x-www-form-urlencoded',
-                                              'Accept': 'application/json'})
+                      headers={'content-type': 'application/x-www-form-urlencoded',
+                               'Accept': 'application/json'})
     if r.status_code >= 400:
         raise OAuth2Error(r.text, r.status_code)
 
@@ -210,10 +207,7 @@ def get_access_token(user):
     return access_token
 
 
-def get_userinfo(access_token, uuid=None, http=None):
-    if http is not None:
-        warnings.warn('http Parameter will be removed', DeprecationWarning)
-
+def get_userinfo(access_token, uuid=None):
     identity_provider = access_token.client.identity_provider
     userinfo_endpoint = identity_provider.userinfo_endpoint
     if not userinfo_endpoint:
