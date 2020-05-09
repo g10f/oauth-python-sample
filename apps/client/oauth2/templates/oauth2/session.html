@@ -7,8 +7,7 @@
     data-target_origin="{{ origin }}" 
     data-client_id="{{ client_id }}"
     data-session_state="{{ session_state }}"
-    data-logout_url="{% url 'logout' %}"
-    data-refresh_token_url="{{ refresh_token_url }}" >
+    data-logout_url="{% url 'logout' %}">
 	<script>
 	(function() {
 	    var targetOrigin = document.body.dataset.target_origin;
@@ -37,13 +36,8 @@
 	            var refresh_token_url = document.body.dataset.refresh_token_url;
 	            var logout_url = document.body.dataset.logout_url;
 	            clearInterval(timerID);
-	            if (refresh_token_url) {
-	                console.log("redirect to: " + refresh_token_url);
-	                window.parent.location.href = refresh_token_url;
-	            } else {
-                    console.log("redirect to logout: " + logout_url);
-	                window.parent.location.href = logout_url;
-	            }
+                console.log("redirect to logout: " + logout_url);
+                window.parent.location.href = logout_url;
 	        }
 	    }
 	    var authenticated = document.body.dataset.authenticated;

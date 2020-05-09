@@ -168,13 +168,6 @@ class SessionView(TemplateView):
                 id_token = IdToken.objects.filter(user=user,
                                                   client__identity_provider=user.identity_provider).latest()
                 client = id_token.client
-                redirect_uri = self.request.build_absolute_uri(force_text(settings.LOGIN_URL))
-                next_url = reverse('session')
-                context['refresh_token_url'] = get_oauth2_authentication_uri(client, response_type='code',
-                                                                             redirect_uri=redirect_uri,
-                                                                             # data={'next': next_url},
-                                                                             prompt='none',
-                                                                             id_token_hint=id_token.raw)
                 context['session_state'] = id_token.session_state
                 context['client_id'] = client.client_id
                 context['origin'] = "{0.scheme}://{0.netloc}".format(urlsplit(user.identity_provider.issuer))
