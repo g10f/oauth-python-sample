@@ -39,7 +39,7 @@
 	            clearInterval(timerID);
 	            if (refresh_token_url) {
 	                console.log("redirect to: " + refresh_token_url);
-	                window.location.href = refresh_token_url;
+	                window.parent.location.href = refresh_token_url;
 	            } else {
                     console.log("redirect to logout: " + logout_url);
 	                window.parent.location.href = logout_url;
