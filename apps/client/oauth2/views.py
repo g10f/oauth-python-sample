@@ -314,6 +314,9 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             # Here for demonstration, the request from the OAuth2 provider is shown.
             # return HttpResponseRedirect(next_url)
         else:
+            if error:
+                raise OAuth2Error(error_description, error, state=state)
+
             next_url = state.get('next')
             if next_url is not None:
                 return HttpResponseRedirect(next_url)
