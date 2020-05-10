@@ -10,40 +10,40 @@
     data-logout_url="{% url 'logout' %}">
 	<script>
 	(function() {
-	    var targetOrigin = document.body.dataset.target_origin;
-	    var message = document.body.dataset.client_id + " " + document.body.dataset.session_state;
-	    var timerID;
+	    let targetOrigin = document.body.dataset.target_origin;
+	    let message = document.body.dataset.client_id + " " + document.body.dataset.session_state;
+	    let timerID;
 	    
-	    var checkSession = function() {
-	        var win = window.parent.document.getElementById('op').contentWindow;
+	    let checkSession = function() {
+	        let win = window.parent.document.getElementById('op').contentWindow;
 	        win.postMessage( message, targetOrigin);
 	    }	    
-	    var setTimer = function() {
-	        var milliseconds = document.body.dataset.milliseconds;
-	        checkSession();
+	    let setTimer = function() {
+	        let milliseconds = document.body.dataset.milliseconds;
+	        // checkSession();
 	        return setInterval(checkSession, milliseconds);
 	    }
 	    
-	    var receiveMessage = function(e) {
+	    let receiveMessage = function(e) {
 	        console.log('receiveMessage: ' + e.data + ' from ' + e.origin);
 	        let url = new URL(e.origin);
-	        origin = url.protocol + "//" + url.host
+	        let origin = url.protocol + "//" + url.host
 	        if (origin !== targetOrigin ) {
 	            console.log('receiveMessage: cross-site scripting attack?');
 	            return;
 	        }	        
 	        if (e.data === "changed") {
-	            var refresh_token_url = document.body.dataset.refresh_token_url;
-	            var logout_url = document.body.dataset.logout_url;
+                let refresh_token_url = document.body.dataset.refresh_token_url;
+                let logout_url = document.body.dataset.logout_url;
 	            clearInterval(timerID);
                 console.log("redirect to logout: " + logout_url);
                 window.parent.location.href = logout_url;
 	        }
 	    }
-	    var authenticated = document.body.dataset.authenticated;
-        var error = document.body.dataset.error;
+	    let authenticated = document.body.dataset.authenticated;
+        let error = document.body.dataset.error;
         if (error === "login_required") {
-            var logout_url = document.body.dataset.logout_url;
+            let logout_url = document.body.dataset.logout_url;
             console.log("error: login_required -> redirect to logout: " + logout_url);
             window.parent.location.href = logout_url;
         } else if (authenticated === "True" && document.body.dataset.session_state != "") {
