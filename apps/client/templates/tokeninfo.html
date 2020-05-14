@@ -26,11 +26,17 @@
 
     {% if access_token %}
         <h4>{% trans 'access token' %}</h4>
+        {% if access_token_error %}
+            <div class="alert alert-danger" role="alert">{{ access_token_error|safe }}</div>
+        {% endif %}
         <pre><code>{{ access_token }}</code></pre>
     {% endif %}
 
     {% if userinfo %}
         <h4>{% trans 'userinfo' %}</h4>
+        {% if userinfo_error %}
+            <div class="alert alert-danger" role="alert">{{ userinfo_error|safe }}</div>
+        {% endif %}
         <pre><code>{{ userinfo }}</code></pre>
     {% endif %}
 

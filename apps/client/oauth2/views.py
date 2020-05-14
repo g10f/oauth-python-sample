@@ -198,10 +198,15 @@ class TokenInfoView(TemplateView):
                                                                     verify_aud=False)
                 context['access_token'] = json.dumps(decoded_access_token, indent=2)
             except Exception as e:
+                context['access_token_error'] = str(e)
+                logger.info(e)
+            try:
+                userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
+                context['userinfo'] = json.dumps(userinfo, indent=2)
+            except Exception as e:
+                context['userinfo_error'] = str(e)
                 logger.info(e)
 
-            userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
-            context['userinfo'] = json.dumps(userinfo, indent=2)
         except Exception as e:
             context['error'] = str(e)
 
