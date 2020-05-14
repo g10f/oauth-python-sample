@@ -23,11 +23,6 @@
         <p><a href="{{ userinfo_endpoint }}">userinfo_endpoint</a></p>
     {% endif %}
 
-    {% if calenderlist %}
-        <p><a href="{{ calenderlist }}">calenderlist</a></p>
-    {% endif %}
-
-
     <table class="table table-condensed">
         <tr>
             <th>Key</th>
@@ -39,7 +34,7 @@
                 <td>
                     {% if key == 'picture' %}
                         {% if value.url %}
-                            <image src="{% if value.url %}{{ value.url }}{% else %}{{ value }}{% endif %}" width="100px"/>
+                            <img src="{% if value.url %}{{ value.url }}{% else %}{{ value }}{% endif %}" width="100px"/>
                         {% endif %}
                     {% elif key == 'applications' %}
                         <ul>

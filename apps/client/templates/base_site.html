@@ -5,32 +5,28 @@
 
 
 {% block sso_base_url %}
-{% with identity_provider=user.identity_provider %}
-
-{% if identity_provider.uri %}
-    <a class="brand" href="{{ identity_provider.uri }}">{{ identity_provider }}</a>
-{% else %}
-    <a class="brand" href="{% url 'home' %}">Test Client</a>
-{% endif %}
-
-{% endwith %}
+    {% with identity_provider=user.identity_provider %}
+        {% if identity_provider.uri %}
+            <a class="brand" href="{{ identity_provider.uri }}">{{ identity_provider }}</a>
+        {% else %}
+            <a class="brand" href="{% url 'home' %}">Test Client</a>
+        {% endif %}
+    {% endwith %}
 {% endblock sso_base_url %}
 
 
-{% block  user_apps %}         
-{% with identity_provider=user.identity_provider %}
-
-<ul class="nav" id="user_apps">
-{% if identity_provider.uri %}
-    <li><a href="{{ identity_provider.uri }}">SSO</a></li>
-{% endif %}
-{% for app in userinfo.applications %}
-    {% if app.global_navigation %}
-        <li class="{% if app.uuid == identity_provider.client_id %}active{% endif %}"><a href="{{ app.url }}">{{ app.title }}</a></li>
-    {% endif %}
-{% endfor %}
-</ul>
-
-{% endwith %}
+{% block  user_apps %}
+    {% with identity_provider=user.identity_provider %}
+        <ul class="nav" id="user_apps">
+            {% if identity_provider.uri %}
+                <li><a href="{{ identity_provider.uri }}">SSO</a></li>
+            {% endif %}
+            {% for app in userinfo.applications %}
+                {% if app.global_navigation %}
+                    <li class="{% if app.uuid == identity_provider.client_id %}active{% endif %}"><a
+                            href="{{ app.url }}">{{ app.title }}</a></li>
+                {% endif %}
+            {% endfor %}
+        </ul>
+    {% endwith %}
 {% endblock user_apps %}
-

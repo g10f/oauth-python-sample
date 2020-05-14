@@ -1,0 +1,38 @@
+{% extends "base_site.html" %}
+{% load i18n %}
+
+{% block title %}Client {% trans 'OAuth 2.0 for Web Server Application' %}{% endblock %}
+
+
+{% block breadcrumb %}
+    <ol class="breadcrumb">
+        <li><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+        <li class="active">{% trans 'Token info' %}</li>
+    </ol>
+{% endblock %}
+
+
+{% block right_content %}
+    <h3>{% trans 'Token Information' %}</h3>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error|safe }}</div>
+    {% endif %}
+
+    {% if id_token %}
+        <h4>{% trans 'id token' %}</h4>
+        <pre><code>{{ id_token }}</code></pre>
+    {% endif %}
+
+    {% if access_token %}
+        <h4>{% trans 'access token' %}</h4>
+        <pre><code>{{ access_token }}</code></pre>
+    {% endif %}
+
+    {% if userinfo %}
+        <h4>{% trans 'userinfo' %}</h4>
+        <pre><code>{{ userinfo }}</code></pre>
+    {% endif %}
+
+{% endblock right_content %}
+

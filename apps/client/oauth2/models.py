@@ -342,7 +342,7 @@ class IdToken(models.Model):
                   email=id_token_content.get('email', ''),
                   auth_time=auth_time,
                   roles=id_token_content.get('roles', ''),  # custom optional field            
-                  content=json.dumps(id_token_content))
+                  content=json.dumps(id_token_content, indent=2))
 
         return obj
 

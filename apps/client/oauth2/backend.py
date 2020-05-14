@@ -57,6 +57,44 @@ def url_update(url, param_dict):
     return urlunsplit((scheme, netloc, path, query, fragment))
 
 
+def decode_idp_jwt_token(client, token, **kwargs):
+    # Don't need to verify with certs, because we got the id_token directly from the id_provider via ssl
+    options = {
+        'verify_exp': True,
+        'verify_nbf': True,
+        'verify_iat': True,
+        'verify_aud': True,
+        'require_exp': True,
+        'require_iat': True,
+        'require_nbf': False
+    }
+    options.update(kwargs)
+    if client.identity_provider.jwks_uri:
+        options['verify_signature'] = True
+        jwks = client.identity_provider.jwks
+        token_content = None
+        for jwk in jwks:
+            if jwk['kty'] == 'RSA':
+                key = RSAAlgorithm.from_jwk(json.dumps(jwk))
+            elif jwk['kty'] == 'oct':
+                key = HMACAlgorithm.from_jwk(json.dumps(jwk))
+            else:
+                raise OAuth2Error('kty %s is not supported' % jwk['kty'], 'invalid_kty')
+            try:
+                token_content = decode(token, key=key, audience=client.client_id, options=options,
+                                       algorithms=get_default_algorithms())
+                break
+            except InvalidSignatureError:
+                pass
+        if token_content is None:
+            raise InvalidSignatureError()
+    else:
+        options['verify_signature'] = False
+        token_content = decode(token, audience=client.client_id, options=options,
+                               algorithms=get_default_algorithms())
+    return options, token_content
+
+
 def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     headers = {'content-type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
     query = {
@@ -110,41 +148,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
 
     id_token_content = None
     if 'id_token' in content:
-        # Don't need to verify with certs, because we got the id_token directly from the id_provider via ssl
-        options = {
-            'verify_exp': True,
-            'verify_nbf': True,
-            'verify_iat': True,
-            'verify_aud': True,
-            'require_exp': True,
-            'require_iat': True,
-            'require_nbf': False
-        }
-
-        if client.identity_provider.jwks_uri:
-            options['verify_signature'] = True
-            jwks = client.identity_provider.jwks
-            id_token_content = None
-            for jwk in jwks:
-                if jwk['kty'] == 'RSA':
-                    key = RSAAlgorithm.from_jwk(json.dumps(jwk))
-                elif jwk['kty'] == 'oct':
-                    key = HMACAlgorithm.from_jwk(json.dumps(jwk))
-                else:
-                    raise OAuth2Error('kty %s is not supported' % jwk['kty'], 'invalid_kty')
-                try:
-                    id_token_content = decode(content['id_token'], key=key, audience=client.client_id, options=options,
-                                              algorithms=get_default_algorithms())
-                    break
-                except InvalidSignatureError:
-                    pass
-            if id_token_content is None:
-                raise InvalidSignatureError()
-        else:
-            options['verify_signature'] = False
-            id_token_content = decode(content['id_token'], audience=client.client_id, options=options,
-                                      algorithms=get_default_algorithms())
-
+        options, id_token_content = decode_idp_jwt_token(client, content['id_token'])
         id_token_content['raw'] = content['id_token']
         if 'roles' in id_token_content:
             id_token_content['roles'] = id_token_content['roles'].split()
