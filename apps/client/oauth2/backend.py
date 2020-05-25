@@ -160,13 +160,14 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     return access_token, id_token_content, refresh_token
 
 
-def refresh_access_token(access_token, ):
+def refresh_access_token(access_token, user):
     client = access_token.client
+    refresh_token = access_token.refresh_token
     query = {
         'grant_type': 'refresh_token',
         'client_id': client.client_id,
         'client_secret': client.client_secret,
-        'refresh_token': access_token.refresh_token
+        'refresh_token': refresh_token
     }
 
     # body = urlencode(query)
@@ -194,11 +195,18 @@ def refresh_access_token(access_token, ):
         raise OAuth2Error('', e)
 
     expires_in = content.get('expires_in', 3600)
-    access_token.token = content['access_token']
-    access_token.type = content.get('token_type', '')  # facebook is not OAuth2 compliant
-    access_token.scope = content.get('scope', '')  # custom optional field
-    access_token.expires_at = timezone.now() + timezone.timedelta(0, expires_in)
-    access_token.save()
+    access_token = AccessToken.objects.create(
+        user=user,
+        client=client,
+        token=content['access_token'],
+        type=content.get('token_type', ''),  # facebook is not OAuth2 compliant
+        scope=content.get('scope', ''),  # custom optional field
+        expires_at=timezone.now() + timezone.timedelta(0, expires_in))
+
+    if 'refresh_token' in content:
+        RefreshToken.objects.create(access_token=access_token, token=content['refresh_token'])
+    else:  # use the old one
+        RefreshToken.objects.create(access_token=access_token, token=refresh_token)
 
     return access_token
 
@@ -206,7 +214,7 @@ def refresh_access_token(access_token, ):
 def get_access_token(user):
     access_token = AccessToken.objects.filter(user=user).latest()
     if access_token.expires_at <= now():
-        access_token = refresh_access_token(access_token)
+        access_token = refresh_access_token(access_token, user)
 
     return access_token
 
