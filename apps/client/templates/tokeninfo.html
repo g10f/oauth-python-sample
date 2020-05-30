@@ -19,17 +19,17 @@
         <div class="alert alert-danger" role="alert">{{ error|safe }}</div>
     {% endif %}
 
-    {% if id_token %}
-        <h4>{% trans 'id token' %}</h4>
-        <pre><code>{{ id_token }}</code></pre>
-    {% endif %}
-
     {% if access_token %}
         <h4>{% trans 'access token' %}</h4>
         {% if access_token_error %}
             <div class="alert alert-danger" role="alert">{{ access_token_error|safe }}</div>
         {% endif %}
         <pre><code>{{ access_token }}</code></pre>
+    {% endif %}
+
+    {% if id_token %}
+        <h4>{% trans 'id token' %}</h4>
+        <pre><code>{{ id_token }}</code></pre>
     {% endif %}
 
     {% if userinfo %}
