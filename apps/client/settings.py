@@ -1,6 +1,8 @@
 # Django settings for client project.
 import os
+
 import sys
+
 from django.urls import reverse_lazy
 
 try:
@@ -70,7 +72,6 @@ LOGIN_URL = reverse_lazy('login')
 LOGIN_REDIRECT_URL = reverse_lazy('login')
 SESSION_COOKIE_NAME = 'client_session_id'
 
-
 SSO = {
     'STAFF_GROUPS': ['Staff', 'Superuser'],
     'APP_UUID': os.environ.get('SSO.APP_UUID', 'ec1e39cbe3e746c787b770ace4165d13'),
@@ -84,7 +85,7 @@ AUTHENTICATION_BACKENDS = (
 )
 
 AUTH_USER_MODEL = 'oauth2.User'
-SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies' 
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 # SESSION_COOKIE_AGE = 60 * 10  # seconds * Minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
@@ -100,7 +101,6 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     # 'django.contrib.staticfiles.finders.DefaultStorageFinder',
 ]
-
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = os.environ.get('SECRET_KEY', '&amp;9w&amp;vwpc7uahoddb0e+^oyh#v@=hjemup0zb0t^8a++!r1lypp')
@@ -166,7 +166,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django.contrib.flatpages',    
+    'django.contrib.flatpages',
     'django.contrib.admin',
     'django.contrib.admindocs',
     'sorl.thumbnail',
@@ -177,16 +177,12 @@ INSTALLED_APPS = (
 DEFAULT_FROM_EMAIL = 'webmaster@g10f.de'
 SERVER_EMAIL = 'webmaster@g10f.de'
 
-# Configure logging
-ERROR_LOGFILE = "../../logs/oauth-error.log"
-INFO_LOGFILE = "../../logs/oauth-info.log"
-
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            'format': '%(levelname)s %(asctime)s %(module)s %(lineno)d %(process)d %(thread)d %(message)s'
         },
         'simple': {
             'format': '%(levelname)s %(message)s'
@@ -194,58 +190,30 @@ LOGGING = {
     },
     'filters': {
         'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        },
-        'require_debug_true': {
-            '()': 'django.utils.log.RequireDebugTrue',
+            '()': 'django.utils.log.RequireDebugFalse',
         },
     },
     'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
         'mail_admins': {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
             'class': 'django.utils.log.AdminEmailHandler',
-            'formatter': 'simple',
-        },
-        'error': {
-            'level': 'WARNING',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, ERROR_LOGFILE),
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
-            'backupCount': 5,
             'formatter': 'verbose',
-        },
-        'debug': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, INFO_LOGFILE),
-            'maxBytes': 1024 * 1024 * 5,  # 5 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-    },
-    'loggers': {
-        'django.request': {
-            'handlers': ['mail_admins', 'error', 'debug'],
-            'level': 'WARNING',
-            'propagate': False,
-        },
-        'oauth2': {
-            'handlers': ['mail_admins', 'error', 'debug'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'django.db.backends': {
-            'handlers': ['error', 'debug'],
-            'level': 'WARNING',
-            'propagate': False,
-        },
-        'sorl': {
-            'level': 'WARNING',
         }
     },
     'root': {
-        'level': 'INFO',
-        'handlers': ['mail_admins', 'error', 'debug'],
+        'handlers': ['console', 'mail_admins'],
+        'level': os.getenv('ROOT_LOG_LEVEL', 'INFO'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'mail_admins'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
     },
 }
