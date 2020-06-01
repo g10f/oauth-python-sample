@@ -215,7 +215,7 @@ class Organisation(models.Model):
 
 class User(AbstractBaseUser, PermissionsMixin):
     unique_name = models.CharField(_('unique name'), unique=True, max_length=255)
-    uuid = models.CharField(_("uuid"), max_length=36)  # hex value of uuid
+    uuid = models.CharField(_("uuid"), max_length=255)  # not always a uuid TODO: rename field
     identity_provider = models.ForeignKey(IdentityProvider, blank=True, null=True, on_delete=models.CASCADE)
     organisations = models.ManyToManyField(Organisation, blank=True)
     # original Django fields, except that username is not unique
