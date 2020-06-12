@@ -150,8 +150,8 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     if 'id_token' in content:
         options, id_token_content = decode_idp_jwt_token(client, content['id_token'])
         id_token_content['raw'] = content['id_token']
-        if 'roles' in id_token_content:
-            id_token_content['roles'] = id_token_content['roles'].split()
+        if client.roles_claim and client.roles_claim in id_token_content:
+            id_token_content[client.roles_claim] = id_token_content[client.roles_claim].split()
 
     refresh_token = None
     if 'refresh_token' in content:

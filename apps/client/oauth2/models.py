@@ -121,6 +121,7 @@ class Client(models.Model):
     max_age = models.DurationField(_("max_age"), blank=True, null=True)
     acr_values = models.CharField(_("acr_values"), blank=True, max_length=255)
     use_pkce = models.BooleanField(_('use PKCE'), default=False)
+    roles_claim = models.CharField(_('name of the roles_claim'), blank=True, max_length=255)
     redirect_uri = models.CharField(_("redirect uri"), default=lazystr(settings.LOGIN_URL), blank=True,
                                     max_length=2048)
     ui_locales = models.CharField(
@@ -332,6 +333,9 @@ class IdToken(models.Model):
             auth_time = None
         raw = id_token_content['raw']
         del id_token_content['raw']
+        roles = ''
+        if client.roles_claim:
+            roles = id_token_content.get(client.roles_claim, '')
         obj = cls(client=client,
                   raw=raw,
                   aud=id_token_content['aud'],
@@ -341,7 +345,7 @@ class IdToken(models.Model):
                   sub=id_token_content['sub'],
                   email=id_token_content.get('email', ''),
                   auth_time=auth_time,
-                  roles=id_token_content.get('roles', ''),  # custom optional field            
+                  roles=roles,  # custom optional field
                   content=json.dumps(id_token_content, indent=2))
 
         return obj
@@ -448,8 +452,8 @@ def update_user(client, data):
     update_object_from_dict(user, defaults)
 
     # create or update Roles
-    if 'roles' in data:
-        update_roles(user, data['roles'])
+    if client.roles_claim and client.roles_claim in data:
+        update_roles(user, data[client.roles_claim])
 
     # create or update organisations
     if 'organisations' in data:
