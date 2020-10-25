@@ -88,7 +88,7 @@ class CodeVerifierAdmin(admin.ModelAdmin):
 
 
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'type', 'is_active')
+    list_display = ('__str__', 'client_id', 'type', 'is_active')
     list_filter = ('type', 'identity_provider',)
 
 

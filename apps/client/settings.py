@@ -210,6 +210,11 @@ LOGGING = {
         'level': os.getenv('ROOT_LOG_LEVEL', 'INFO'),
     },
     'loggers': {
+        'client.oauth2': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
         'django': {
             'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),

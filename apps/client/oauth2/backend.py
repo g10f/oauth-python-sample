@@ -185,6 +185,7 @@ def refresh_access_token(access_token, user):
         else:
             content = r.json()
 
+        logger.info(json.dumps(content, indent=4, sort_keys=True))
         if content.get('error'):
             message = content.get('error_description')
             error = content.get('error')
@@ -213,7 +214,8 @@ def refresh_access_token(access_token, user):
 
 def get_access_token(user):
     access_token = AccessToken.objects.filter(user=user).latest()
-    if access_token.expires_at <= now():
+    # if access_token.expires_at <= now():
+    if hasattr(access_token, 'refresh_token'):
         access_token = refresh_access_token(access_token, user)
 
     return access_token

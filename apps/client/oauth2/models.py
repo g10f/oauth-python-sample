@@ -142,7 +142,10 @@ class Client(models.Model):
         # unique_together = (("identity_provider", "type"),)
 
     def __str__(self):
-        return "%s - %s" % (self.name, self.identity_provider)
+        if self.name:
+            return "%s - %s" % (self.name, self.identity_provider)
+        else:
+            return self.identity_provider.name
 
     def get_redirect_uri(self, request):
         return request.build_absolute_uri(self.redirect_uri)
@@ -156,7 +159,8 @@ class Client(models.Model):
                 if getattr(self, arg):
                     t[arg] = str(getattr(self, arg))
 
-        add('default_scopes', 'claims', 'max_age', 'acr_values', 'ui_locales', 'claims_locales', 'prompt', 'use_pkce')
+        add('client_id', 'default_scopes', 'claims', 'max_age', 'acr_values', 'ui_locales', 'claims_locales', 'prompt',
+            'use_pkce')
 
         return "{t}".format(t=t)
 

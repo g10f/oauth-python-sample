@@ -1,0 +1,96 @@
+html {
+ overflow-y: scroll;
+}
+body {
+  padding-top: 70px;
+}
+// thumbnail in the global navigation bar
+.dwbn-icon-user {
+    margin-top: -10px;
+    margin-bottom: -9px;
+}
+.dw-nav-row {
+    margin-bottom: 15px;
+}
+noscript div {
+    margin-top: -20px;
+}
+
+/* controls
+-------------------------------------------------- */
+/*
+div .dw-form-controls {
+    input[type="text"] { .form-control }
+    select { .form-control; }
+    textarea { .form-control; }
+    input[type="text"] { .form-control; }
+    input[type="password"] { .form-control; }
+    input[type="datetime"] { .form-control; }
+    input[type="datetime-local"] { .form-control; }
+    input[type="date"] { .form-control; }
+    input[type="month"] { .form-control;  }
+    input[type="time"] { .form-control; }
+    input[type="week"] { .form-control; }
+    input[type="number"] { .form-control; }
+    input[type="email"] { .form-control; }
+    input[type="url"] { .form-control; }
+    input[type="search"] { .form-control; }
+    input[type="tel"] { .form-control; }
+    input[type="color"] { .form-control; }
+    
+    // Reset height for `textarea`s
+    textarea { height: auto; }
+}
+*/
+/* sidebar
+-------------------------------------------------- */
+
+/* By default it's not affixed in mobile views, so undo that */
+.dw-sidebar.affix {
+  position: static;
+}
+
+/* stacked forms
+------------------------------------------------- */
+.empty-form {
+    display: none;
+}
+.inline-related {
+    div.delete {float: right;
+       div {float: left;}
+       label {display: inline;}
+    }
+}
+.inline-group {
+    .add-row {margin-bottom: 15px;}
+}
+.inline-deletelink {
+    border: 0 none;
+    float: right;
+    height: 15px;
+    outline: 0 none;
+}
+
+/* Footer
+-------------------------------------------------- */
+.footer {
+  padding: 70px 0;
+  margin-top: 70px;
+  border-top: 1px solid #e5e5e5;
+  background-color: #f5f5f5;
+}
+.footer p {
+  margin-bottom: 0;
+  color: #777;
+}
+.footer-links {
+  margin: 10px 0;
+}
+.footer-links li {
+  display: inline;
+  padding: 0 2px;
+}
+.footer-links li:first-child {
+  padding-left: 0;
+}
+
