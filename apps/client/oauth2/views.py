@@ -203,7 +203,7 @@ class TokenInfoView(TemplateView):
                                                                     verify_aud=False)
                 context['access_token'] = json.dumps(decoded_access_token, indent=2)
             except InvalidTokenError as e:
-                context['access_token_error'] = f"access token is not a valid jwt. ({e})"
+                context['access_token_error'] = "access token is not a valid jwt. (%s)" % e
                 logger.info(e)
             try:
                 userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
