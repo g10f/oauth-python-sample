@@ -196,7 +196,7 @@ class TokenInfoView(TemplateView):
                                                   client__identity_provider=identity_provider).latest()
                 context['id_token'] = id_token.content
             except ObjectDoesNotExist as e:
-                logger.warning(f"id_token not found for {identity_provider}")
+                logger.warning("id_token not found for %s", identity_provider)
 
             try:
                 option, decoded_access_token = decode_idp_jwt_token(access_token.client, access_token.token,
