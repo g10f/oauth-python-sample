@@ -73,8 +73,8 @@ class IdTokenAdmin(admin.ModelAdmin):
 
 
 class IdentityProviderAdmin(admin.ModelAdmin):
-    list_display = ('name', 'authorization_endpoint', 'token_endpoint', 'userinfo_endpoint', 'is_active')
-    list_filter = ('client__type', 'is_supporting_http_auth_header')
+    list_display = ('name', 'issuer', 'is_active')
+    list_filter = ('is_active', 'client__type', 'is_supporting_http_auth_header')
 
 
 class NonceAdmin(admin.ModelAdmin):
