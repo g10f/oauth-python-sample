@@ -2,7 +2,7 @@ django<3
 gunicorn
 requests
 pillow
-psycopg2-binary
+psycopg2
 sorl-thumbnail
 six
 pyjwt
