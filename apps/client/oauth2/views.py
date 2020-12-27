@@ -3,10 +3,6 @@ import logging
 from datetime import timedelta
 from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
 
-from client.oauth2.backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update, \
-    decode_idp_jwt_token
-from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
-from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login, logout as auth_logout, authenticate
@@ -26,6 +22,12 @@ from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.generic import TemplateView
 from django.views.generic.base import RedirectView
+from jwt import InvalidTokenError
+
+from client.oauth2.backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update, \
+    decode_idp_jwt_token
+from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
+from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -189,16 +191,19 @@ class TokenInfoView(TemplateView):
             user = self.request.user
             access_token = get_access_token(user)
             identity_provider = self.request.user.identity_provider
-            id_token = IdToken.objects.filter(user=self.request.user,
-                                              client__identity_provider=identity_provider).latest()
-            context['id_token'] = id_token.content
+            try:
+                id_token = IdToken.objects.filter(user=self.request.user,
+                                                  client__identity_provider=identity_provider).latest()
+                context['id_token'] = id_token.content
+            except ObjectDoesNotExist as e:
+                logger.warning("id_token not found for %s", identity_provider)
 
             try:
                 option, decoded_access_token = decode_idp_jwt_token(access_token.client, access_token.token,
                                                                     verify_aud=False)
                 context['access_token'] = json.dumps(decoded_access_token, indent=2)
-            except Exception as e:
-                context['access_token_error'] = str(e)
+            except InvalidTokenError as e:
+                context['access_token_error'] = "access token is not a valid jwt. (%s)" % e
                 logger.info(e)
             try:
                 userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
@@ -343,12 +348,11 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
             messages.success(request, _('Welcome, %(user)s, you are logged in with <strong>%(provider)s</strong>.') %
                              {'user': user, 'provider': client.identity_provider})
-            return render(request, 'login.html', context={'next': next_url, 'authentications': authentications})
-
+            # return render(request, 'login.html', context={'next': next_url, 'authentications': authentications})
             # In production you should redirect to another page, so that the url with the code and state gets not
             # requested again.
             # Here for demonstration, the request from the OAuth2 provider is shown.
-            # return HttpResponseRedirect(next_url)
+            return HttpResponseRedirect(next_url)
         else:
             if error:
                 raise OAuth2Error(error_description, error, state=state)

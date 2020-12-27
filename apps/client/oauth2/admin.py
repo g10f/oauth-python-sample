@@ -73,8 +73,8 @@ class IdTokenAdmin(admin.ModelAdmin):
 
 
 class IdentityProviderAdmin(admin.ModelAdmin):
-    list_display = ('name', 'authorization_endpoint', 'token_endpoint', 'userinfo_endpoint', 'is_active')
-    list_filter = ('client__type', 'is_supporting_http_auth_header')
+    list_display = ('name', 'issuer', 'is_active')
+    list_filter = ('is_active', 'is_secure', 'client__type', 'is_supporting_http_auth_header')
 
 
 class NonceAdmin(admin.ModelAdmin):
@@ -88,7 +88,7 @@ class CodeVerifierAdmin(admin.ModelAdmin):
 
 
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ('__str__', 'type', 'is_active')
+    list_display = ('__str__', 'client_id', 'type', 'is_active')
     list_filter = ('type', 'identity_provider',)
 
 
