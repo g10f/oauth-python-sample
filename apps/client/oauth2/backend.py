@@ -214,9 +214,10 @@ def refresh_access_token(access_token, user):
 
 def get_access_token(user):
     access_token = AccessToken.objects.filter(user=user).latest()
-    # if access_token.expires_at <= now():
-    if hasattr(access_token, 'refresh_token'):
+    if access_token.expires_at <= now() and hasattr(access_token, 'refresh_token'):
         access_token = refresh_access_token(access_token, user)
+    else:
+        logger.warning('Access Token expired and we have no refresh token.')
 
     return access_token
 

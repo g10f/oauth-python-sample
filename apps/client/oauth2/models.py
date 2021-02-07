@@ -292,9 +292,10 @@ class AccessToken(models.Model):
     type = models.CharField(_("type"), max_length=255)
     expires_at = models.DateTimeField(_('expires at'))
     scope = models.CharField(_("scope"), max_length=2048, blank=True)
+    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
 
     class Meta:
-        get_latest_by = "expires_at"
+        get_latest_by = "created_at"
 
     def __str__(self):
         return Truncator(self.token).chars(30)

@@ -311,9 +311,18 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
     authentications = []
     for client in Client.objects.filter(identity_provider__is_active=True, is_active=True, type='web'):
+        id_token_hint = None
+        if request.user.is_authenticated:
+            try:
+                id_token = IdToken.objects.filter(user=request.user,
+                                                  client__identity_provider=client.identity_provider).latest()
+                id_token_hint = id_token.raw
+            except IdToken.DoesNotExist:
+                pass
+
         uri = get_oauth2_authentication_uri(client, response_type='code',
                                             redirect_uri=client.get_redirect_uri(request),
-                                            data={'next': next_url})
+                                            data={'next': next_url}, id_token_hint=id_token_hint)
         authentications.append({'name': client, 'uri': uri, 'identity_provider_id': client.identity_provider.id,
                                 'id': client.id, 'tooltip': client.tooltip})
     state = {}
