@@ -5,7 +5,7 @@ from json import JSONDecodeError
 from urllib.parse import urlsplit, parse_qsl, urlunsplit
 
 import requests
-from jwt import decode, InvalidSignatureError
+from jwt import decode, InvalidSignatureError, PyJWKClient
 from jwt.algorithms import get_default_algorithms, RSAAlgorithm, HMACAlgorithm
 
 from client.oauth2.logging import debug_requests
@@ -71,23 +71,9 @@ def decode_idp_jwt_token(client, token, **kwargs):
     options.update(kwargs)
     if client.identity_provider.jwks_uri:
         options['verify_signature'] = True
-        jwks = client.identity_provider.jwks
-        token_content = None
-        for jwk in jwks:
-            if jwk['kty'] == 'RSA':
-                key = RSAAlgorithm.from_jwk(json.dumps(jwk))
-            elif jwk['kty'] == 'oct':
-                key = HMACAlgorithm.from_jwk(json.dumps(jwk))
-            else:
-                raise OAuth2Error('kty %s is not supported' % jwk['kty'], 'invalid_kty')
-            try:
-                token_content = decode(token, key=key, audience=client.client_id, options=options,
-                                       algorithms=get_default_algorithms())
-                break
-            except InvalidSignatureError:
-                pass
-        if token_content is None:
-            raise InvalidSignatureError()
+        signing_key = client.identity_provider.get_signing_key_from_jwt(token)
+        token_content = decode(token, key=signing_key.key, audience=client.client_id, options=options,
+                               algorithms=get_default_algorithms())
     else:
         options['verify_signature'] = False
         token_content = decode(token, audience=client.client_id, options=options,

@@ -1,4 +1,3 @@
-import json
 import logging
 
 from django.contrib import auth
@@ -10,7 +9,7 @@ from django.http import HttpResponseRedirect
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
 from jwt import decode, InvalidTokenError
-from jwt.algorithms import get_default_algorithms
+from jwt.api_jwt import decode_complete as decode_token
 
 from client.oauth2.models import ApiClient, IdentityProvider
 from client.oauth2.views import get_oauth2_authentication_uri_from_name
@@ -19,16 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 def verify_signed_jwt(jwt):
-    payload = decode(jwt)
+    decoded = decode_token(jwt, options={"verify_signature": False})
+    payload = decoded["payload"]
     issuer = payload['iss']
     audiance = payload['aud']  # this is the id of a client of our api
+    kid = decoded['header'].get('kid')
     idp = IdentityProvider.objects.get(issuer=issuer)
-    for jwk in idp.jwks:
-        alg_obj = get_default_algorithms()[jwk['alg']]
-        key = alg_obj.from_jwk(json.dumps(jwk))
-        decode(jwt, key=key, audiance=audiance, options={'verify_signature': True})
-        break
-
+    key = idp.get_signing_key_from_kid(kid)
+    payload = decode(jwt, key=key, audiance=audiance, options={'verify_signature': True})
     return payload, idp
 
 

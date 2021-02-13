@@ -1,10 +1,10 @@
 import base64
 import hashlib
 import json
+import urllib
 from datetime import datetime
 from functools import partial
 
-import requests
 from django.conf import settings
 from django.contrib.auth.models import UserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
@@ -17,6 +17,8 @@ from django.utils.functional import lazystr
 from django.utils.http import urlquote
 from django.utils.text import Truncator
 from django.utils.translation import ugettext_lazy as _
+from jwt.api_jwk import PyJWK
+from jwt.api_jwt import decode_complete as decode_token
 
 from .utils import OAuth2Error
 
@@ -76,22 +78,35 @@ class IdentityProvider(models.Model):
         verbose_name = _('Identity Provider')
         verbose_name_plural = _('Identity Providers')
 
-    @property
-    def jwks(self):
-        if not self.jwks_uri:
-            return None
-        cache_key = '%s.pub_keys' % self.jwks_uri
-        pub_keys = cache.get(cache_key)
-        if pub_keys is None:
-            r = requests.get(self.jwks_uri, verify=self.is_secure)
-            pks = r.json()
-            pub_keys = []
-            for key in pks['keys']:
-                pub_keys.append(key)
-            timeout = r.headers.get('max-age', 60)
-            cache.add(cache_key, pub_keys, timeout=timeout)
+    def _get_jwks_from_kid(self, kid):
+        # find signing key by kid and cache the data
+        cache_key = f'signing_key_from_jwt_{kid}'
+        signing_key = cache.get(cache_key)
+        if signing_key is None:
+            with urllib.request.urlopen(self.jwks_uri) as response:
+                data = json.load(response)
+
+            signing_key = None
+            for item in data['keys']:
+                if item.get('kid') == kid and item.get('use') == 'sig':
+                    signing_key = item
+                    break
+            if signing_key is None:
+                raise OAuth2Error(f'Unable to find a signing key that matches: "{kid}"', 'signing_error')
+
+            cache.add(cache_key, signing_key)
             return cache.get(cache_key)
-        return pub_keys
+        else:
+            return signing_key
+
+    def get_signing_key_from_kid(self, kid):
+        return PyJWK.from_dict(self._get_jwks_from_kid(kid))
+
+    def get_signing_key_from_jwt(self, token):
+        unverified = decode_token(token, options={"verify_signature": False})
+        header = unverified["header"]
+        kid = header.get("kid")
+        return self.get_signing_key_from_kid(kid)
 
     def __str__(self):
         return self.name
@@ -270,7 +285,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def application_id(self):
         try:
-            return AccessToken.objects.filter(user=self, client__identity_provider=self.identity_provider).latest().\
+            return AccessToken.objects.filter(user=self, client__identity_provider=self.identity_provider).latest(). \
                 client.application_id
         except ObjectDoesNotExist:
             return ""
