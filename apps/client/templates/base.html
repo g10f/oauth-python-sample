@@ -1,69 +1,73 @@
 <!DOCTYPE html>{% load static i18n active %}
 <html lang="{{ LANGUAGE_CODE|default:"de-de" }}">
 <head>
-    <meta charset="utf-8">
-    <title>{% block title %}{% endblock title %}</title>
-    <meta name="description" content="">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% block style %} 
-    <link rel="stylesheet" href="{% block stylesheet %}{% static "css/style-1.0.6.css" %}{% endblock %}">
-    {% block extrastyle %}{% endblock extrastyle %}
-    {% endblock style %}    
-    <link rel="shortcut icon" href="{% static "ico/favicon.ico" %}">
-    {% block extrahead %}{% endblock extrahead %}
-    <script src="{% static "js/vendor/jquery-3.4.1.min.js" %}"></script>
-    <script src="{% static "js/vendor/bootstrap-3.4.1.min.js" %}"></script>
-    <script>window.__media_prefix__ = "{% filter escapejs %}{% static "" %}{% endfilter %}";</script>
-    <script src="{% static "js/global-nav-1.0.10.js" %}"></script>
-    {% block extrascript %}{% endblock extrascript %}
+  <meta charset="utf-8">
+  <title>{% block title %}{% endblock title %}</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="author" content="g10f">
+  <link rel="apple-touch-icon" href="{% static 'ico/apple-touch-icon.png' %}" sizes="180x180">
+  <link rel="icon" href="{% static 'ico/favicon-32x32.png' %}" sizes="32x32" type="image/png">
+  <link rel="icon" href="{% static 'ico/favicon-16x16.png' %}" sizes="16x16" type="image/png">
+  <link rel="icon" href="{% static 'ico/favicon.ico' %}">
+  {% block extrahead %}{% endblock %}
+  {% block style %}
+    <link rel="stylesheet" href="{% static 'css/main-1.0.2.min.css' %}">
+    <link rel="stylesheet" href="{% static "css/bootstrap-icons-5.0.0.css" %}">
+  {% endblock style %}
+  {% block extrastyle %}{% endblock %}
+  {% block script %}
+    <script src="{% static "js/vendor/3.6.0/jquery.min.js" %}"></script>
+    <script src="{% static "js/vendor/bs5/beta2/bootstrap.bundle.min.js" %}"></script>
+    <script src="{% static "js/global-nav-1.0.11.js" %}"></script>
+  {% endblock script %}
+  {% block extrascript %}{% endblock extrascript %}
 </head>
 <body>
-    {% block body %}
-    {% block navbar %}
-    {% include "includes/global_navigation.html" %}
-    {% include 'includes/noscript.html' %} 
-    {% endblock navbar %}
-    <div class="{% block containerclass %}container{% endblock %}"> 
+{% with containerclass='container-xxl' %}
+  {% block body %}
+
+    {% block navbar %}{% include "include/global_navigation.html" %}{% endblock navbar %}
+    <div class="{% block containerclass %}{{ containerclass }}{% endblock %}">
+
+      <nav aria-label="breadcrumb">
         {% block breadcrumb %}
-        <ol class="breadcrumb">
+          <ol class="breadcrumb">
             <li><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
-        </ol> 
-        {% endblock %}     
-        {% block content %}
-        <div class="row">
-            <div class="col-md-3 col-sm-4">
-                <div class="list-group">              
-                    <a class="{% active 'home' %} list-group-item" href="{% url 'home' %}"><i class="glyphicon glyphicon-home"></i> {% trans 'Home' %}</a>
-                    <a class="{% active 'login' %} list-group-item" href="{% url 'login' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Code/Hybrid Flow Login' %}</a>
-                    {# <a class="{% active 'login_installed' %} list-group-item" href="{% url 'login_installed' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Log in with for installed apps' %}</a> #}
-                    <a class="{% active 'userinfo_client' %} list-group-item" href="{% url 'userinfo_client' %}"><i class="glyphicon glyphicon-log-in"></i> {% trans 'Implicit Flow Login' %}</a>
-                    <a class="{% active 'tokeninfo_me' %} list-group-item" href="{% url 'tokeninfo_me' %}"><i class="glyphicon glyphicon-info-sign"></i> {% trans 'Token info' %}</a>
-                    <a class="{% active 'userinfo_me' %} list-group-item" href="{% url 'userinfo_me' %}"><i class="glyphicon glyphicon-user"></i> {% trans 'About me' %}</a>
-                    {% if user.is_staff %}
-                    <a class="list-group-item" href="{% url 'admin:index' %}"><i class="glyphicon glyphicon-wrench"></i> {% trans 'Administration' %}</a>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="col-md-9 col-sm-8">
-                <div class="">{% block right_content %}<h2>{% trans 'Home' %}</h2>{% endblock %}</div>
-            </div>
-        </div>
-        {% endblock content %}
-      <hr>
-      {% block footer %}      
-      <footer>
-        <ul class="footer-links">
-            <li><a href="{% url 'about' %}">{% trans 'About us' %}</a></li>
-        </ul>
-      </footer>
+          </ol>
+        {% endblock %}
+      </nav>
+
+      {% block content %}
+        <main class="{% block mainclass %}{% endblock %}">
+          <aside>
+            {% block left_content %}{% include 'include/_navigation.html' %}{% endblock left_content %}
+          </aside>
+          <section>
+            {% block right_content %}<h1>{% trans 'Home' %}</h1>{% endblock %}
+          </section>
+        </main>
+      {% endblock content %}
+
+      {% block footer %}
+        <footer class="footer mt-auto">
+          <hr>
+          <div class="{{ containerclass }}">
+            <ul>
+              <li><a href="{% url 'about' %}">{% translate 'About us' %}</a></li>
+            </ul>
+          </div>
+        </footer>
       {% endblock footer %}
-    </div> <!-- /container -->
-    {% endblock body %}
+
+    </div>
+  {% endblock body %}
+{% endwith %}
 {% if user.get_identity_provider.check_session_iframe %}
-<iframe title='empty' class="hidden" id='op' src='{{ user.get_identity_provider.check_session_iframe }}'></iframe>
-<iframe title='empty' class="hidden" id='rp' src='{% url 'session' %}'></iframe>
+  <iframe title='empty' class="hidden" id='op' src='{{ user.get_identity_provider.check_session_iframe }}'></iframe>
+  <iframe title='empty' class="hidden" id='rp' src='{% url 'session' %}'></iframe>
 {% endif %}
-    <script src="{% static "js/plugins.js" %}"></script>
-    <script src="{% static "js/script-1.1.0.js" %}"></script>
+<script src="{% static "js/plugins-1.0.1.js" %}"></script>
+<script src="{% static "js/script-1.1.0.js" %}"></script>
 </body>
 </html>

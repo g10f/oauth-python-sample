@@ -6,7 +6,6 @@ from django.contrib.flatpages import models
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils.decorators import available_attrs
 from django.utils.translation import ugettext as _
 
 logger = logging.getLogger(__name__)
@@ -37,7 +36,7 @@ def api_user_passes_test(test_func):
     """
 
     def decorator(view_func):
-        @wraps(view_func, assigned=available_attrs(view_func))
+        @wraps(view_func)
         def _wrapped_view(request, *args, **kwargs):
             if test_func(request.user):
                 return view_func(request, *args, **kwargs)

@@ -1,0 +1,55 @@
+//
+// VWAG colors
+// --------------------------------------------------
+
+$vwag-grey:				#4c5356;
+$vwag-grey-70: 			#7f8789;
+$vwag-petrol: 			#004666;
+$vwag-petrol-80: 		#335f7d;
+$vwag-petrol-60: 		#67879d;
+
+$vwag-silver:			#a8adb3;
+$vwag-silver-50:		#d3d6d9;
+$vwag-silver-30:		#e5e6e8;
+$vwag-red:				#a21e4d;
+$vwag-red-60:			#c26d88;
+$vwag-red-20:			#ebced7;
+$vwag-orange-dark:		#d8aa00;
+$vwag-orange-dark-50:	#ebd47f;
+$vwag-orange-dark-30:	#f3e5b2;
+$vwag-petrol-light:		#8dbfcf;
+$vwag-petrol-light-50: 	#c6dfe7;
+$vwag-petrol-light-30: 	#ddecf1;
+$vwag-green:			#95a844;
+$vwag-green-50:			#cad3a1;
+$vwag-green-20:			#eaeeda;
+
+$vwag-anthracite:		#34393B;
+
+// theme-color-variables
+$brand:                 $vwag-petrol;
+$brand-light:           $vwag-silver;
+$brand-red:             $vwag-red;
+
+$primary:               $vwag-petrol;
+$secondary:             $vwag-grey;
+$success:               $vwag-green;
+$info:                  $vwag-petrol-light;
+$warning:               $vwag-orange-dark-50;
+$danger:                $vwag-red;
+//$light:                 $gray-100;
+//$dark:                  $gray-900;
+
+//** Global text color on `<body>`.
+$body-color:            $vwag-grey;
+
+//** Global textual link color.
+$link-color:            $vwag-petrol-80;
+$link-decoration:       none;
+$link-hover-decoration: underline;
+
+//== Typography
+//
+//## Font, line-height, and color for body text, headings, and more.
+$font-family-sans-serif: "VWAGTheSans-Regular","Helvetica Neue",Helvetica,Roboto,Arial,sans-serif;
+$font-size-base: .875rem;

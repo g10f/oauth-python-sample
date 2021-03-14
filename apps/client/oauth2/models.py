@@ -16,7 +16,7 @@ from django.utils.crypto import get_random_string
 from django.utils.functional import lazystr
 from django.utils.http import urlquote
 from django.utils.text import Truncator
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from jwt.api_jwk import PyJWK
 from jwt.api_jwt import decode_complete as decode_token
 

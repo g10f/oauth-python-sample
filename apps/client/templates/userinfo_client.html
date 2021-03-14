@@ -4,30 +4,32 @@
 {% block title %}Client {% trans 'OAuth 2.0 for Client-side Applications' %}{% endblock %}
 
 {% block breadcrumb %}
-    <ol class="breadcrumb">
-        <li><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
-        <li class="active">{% trans 'About me with javascript' %}</li>
-    </ol>
+  <ol class="breadcrumb">
+    <li><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+    <li class="active">{% trans 'About me with javascript' %}</li>
+  </ol>
 {% endblock %}
 
 
 {% block right_content %}
-    <h3>{% trans 'Log in for Javascript Applications' %}</h3>
+  <h1>{% trans 'Log in for Javascript Applications' %}</h1>
 
-    {% for  authentication in authentications %}
-        <p><a data-client-id="{{ authentication.client_id }}" class="btn btn-primary"
-              href="{{ authentication.uri }}"><span class="glyphicon glyphicon-user"></span>
-            {% blocktrans with name=authentication.name %}Log in with {{ name }}{% endblocktrans %}</a></p>
-    {% endfor %}
+  {% for  authentication in authentications %}
+    <div class="row mb-2">
+      <div class="col"><a data-client-id="{{ authentication.client_id }}" class="btn btn-primary"
+                          href="{{ authentication.uri }}"><span class="glyphicon glyphicon-user"></span>
+        {% blocktrans with name=authentication.name %}Log in with {{ name }}{% endblocktrans %}</a></div>
+    </div>
+  {% endfor %}
 
 
-    <h3>{% trans 'User Information' %}</h3>
+  <h1>{% trans 'User Information' %}</h1>
 
-    <table class="table table-condensed" id="info_table" data-default-image="{% static "img/default.jpg" %}">
-        <tr>
-            <th>Key</th>
-            <th>Value</th>
-        </tr>
-    </table>
+  <table class="table table-condensed" id="info_table" data-default-image="{% static "img/default.jpg" %}">
+    <tr>
+      <th>Key</th>
+      <th>Value</th>
+    </tr>
+  </table>
 
 {% endblock right_content %}

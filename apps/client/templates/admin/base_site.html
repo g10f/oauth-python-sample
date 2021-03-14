@@ -1,7 +1,4 @@
 {% extends "admin/base.html" %}
-{% load static %}
-
-{% block extrahead %}<link rel="shortcut icon" href="{% static 'ico/favicon.ico' %}" type="image/ico"/>{% endblock %}
 
 {% block title %}{{ title }} | {{ site_title|default:_('Site admin') }}{% endblock %}
 
@@ -10,4 +7,3 @@
 {% endblock %}
 
 {% block nav-global %}{% endblock %}
-

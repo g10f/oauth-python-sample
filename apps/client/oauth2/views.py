@@ -20,6 +20,7 @@ from django.utils.http import is_safe_url
 from django.utils.timezone import now
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache
+from django.views.decorators.clickjacking import xframe_options_exempt, xframe_options_sameorigin
 from django.views.generic import TemplateView
 from django.views.generic.base import RedirectView
 from jwt import InvalidTokenError
@@ -161,6 +162,7 @@ def get_oauth2_authentication_uri_from_name(request):
     return None
 
 
+@method_decorator(xframe_options_sameorigin, name='dispatch')
 class SessionView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         return super(SessionView, self).dispatch(request, *args, **kwargs)
