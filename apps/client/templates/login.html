@@ -5,7 +5,7 @@
   <script type="text/javascript">
       if (opener) { // login in popup
           opener.location.href = "{% url 'login' %}";
-          close();
+          // close();
       } else { // login in iframe
           // window.top.location.reload();
       }
