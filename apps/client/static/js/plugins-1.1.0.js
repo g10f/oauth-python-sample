@@ -136,7 +136,7 @@ window.log = function f(){ log.history = log.history || []; log.history.push(arg
 	$(function() {
 		var login = function(uri) {
             const width = 500;
-            const height = 420;
+            const height = 500;
             const left = (screen.width - width) / 2;
             const top = (screen.height - height) / 2;
             let params = 'width=' + width + ', height=' + height;
