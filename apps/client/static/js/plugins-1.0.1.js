@@ -135,12 +135,12 @@ window.log = function f(){ log.history = log.history || []; log.history.push(arg
 (function($) {
 	$(function() {
 		var login = function(uri) {
-			var width = 500;
-			var height = 420;
-			var left = (screen.width - width) / 2;
-			var top = (screen.height - height) / 2;
-			var params = 'width=' + width + ', height=' + height;
-			params += ', top=' + top + ', left=' + left;
+            const width = 500;
+            const height = 420;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            let params = 'width=' + width + ', height=' + height;
+            params += ', top=' + top + ', left=' + left;
 			params += ', directories=no';
 			params += ', location=no';
 			params += ', menubar=no';
@@ -149,8 +149,8 @@ window.log = function f(){ log.history = log.history || []; log.history.push(arg
 			params += ', status=no';
 			params += ', toolbar=no';
 
-			var login_window = window.open(uri, "Login", params);
-			if (window.focus) {
+            const login_window = window.open(uri, "Login", params);
+            if (window.focus) {
 				login_window.focus();
 			}
 			return false;
@@ -158,9 +158,8 @@ window.log = function f(){ log.history = log.history || []; log.history.push(arg
 
 		$(".popup-login").click(function(e) {
 			e.preventDefault();
-			var uri = $(this).attr('href');
-			login(uri);
+            const uri = $(this).attr('href');
+            login(uri);
 		});
-
 	});
 })(jQuery);
