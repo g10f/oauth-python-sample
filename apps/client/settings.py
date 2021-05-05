@@ -25,7 +25,7 @@ DEBUG_REQUESTS = False
 # ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
 ALLOWED_HOSTS = ['*']
 SILENCED_SYSTEM_CHECKS = ['admin.E408']
-
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 DEBUG = os.environ.get('DEBUG', DEBUG)
 INTERNAL_IPS = ('127.0.0.1',)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))

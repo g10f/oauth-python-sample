@@ -19,7 +19,7 @@ window.log = function f(){ log.history = log.history || []; log.history.push(arg
  * Licensed under the MIT license (http://www.opensource.org/licenses/mit-license.php).
  * 2013/02/10
  **/
-;(function($) {
+(function($) {
 
     var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",
         a256 = '',
@@ -132,3 +132,35 @@ window.log = function f(){ log.history = log.history || []; log.history.push(arg
     };
 }(jQuery));
 
+(function($) {
+	$(function() {
+		var login = function(uri) {
+			var width = 500;
+			var height = 420;
+			var left = (screen.width - width) / 2;
+			var top = (screen.height - height) / 2;
+			var params = 'width=' + width + ', height=' + height;
+			params += ', top=' + top + ', left=' + left;
+			params += ', directories=no';
+			params += ', location=no';
+			params += ', menubar=no';
+			params += ', resizable=no';
+			params += ', scrollbars=no';
+			params += ', status=no';
+			params += ', toolbar=no';
+
+			var login_window = window.open(uri, "Login", params);
+			if (window.focus) {
+				login_window.focus();
+			}
+			return false;
+		};
+
+		$(".popup-login").click(function(e) {
+			e.preventDefault();
+			var uri = $(this).attr('href');
+			login(uri);
+		});
+
+	});
+})(jQuery);

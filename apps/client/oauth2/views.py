@@ -281,7 +281,6 @@ class UserInfoClientView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(UserInfoClientView, self).get_context_data(**kwargs)
-
         authentications = []
         redirect_uri = self.request.build_absolute_uri()
 
@@ -298,7 +297,27 @@ class UserInfoClientView(TemplateView):
         return context
 
 
+def get_authentication_uris(request, next_url, type='web', response_type='code'):
+    authentications = []
+    for client in Client.objects.filter(identity_provider__is_active=True, is_active=True, type=type):
+        id_token_hint = None
+        if request.user.is_authenticated:
+            try:
+                id_token = IdToken.objects.filter(user=request.user, client__identity_provider=client.identity_provider).latest()
+                id_token_hint = id_token.raw
+            except IdToken.DoesNotExist:
+                pass
+
+        uri = get_oauth2_authentication_uri(client, response_type=response_type,
+                                            redirect_uri=client.get_redirect_uri(request),
+                                            data={'next': next_url}, id_token_hint=id_token_hint)
+        authentications.append({'name': client, 'uri': uri, 'identity_provider_id': client.identity_provider.id,
+                                'id': client.id, 'tooltip': client.tooltip})
+    return authentications
+
+
 @never_cache
+@xframe_options_exempt
 def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
     # The original url from the client the user  requested
     next_url = request.POST.get(redirect_field_name, request.GET.get(redirect_field_name, ''))
@@ -311,22 +330,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
     error_description = request.GET.get('error_description')  # OAuth 2
     redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL))
 
-    authentications = []
-    for client in Client.objects.filter(identity_provider__is_active=True, is_active=True, type='web'):
-        id_token_hint = None
-        if request.user.is_authenticated:
-            try:
-                id_token = IdToken.objects.filter(user=request.user,
-                                                  client__identity_provider=client.identity_provider).latest()
-                id_token_hint = id_token.raw
-            except IdToken.DoesNotExist:
-                pass
-
-        uri = get_oauth2_authentication_uri(client, response_type='code',
-                                            redirect_uri=client.get_redirect_uri(request),
-                                            data={'next': next_url}, id_token_hint=id_token_hint)
-        authentications.append({'name': client, 'uri': uri, 'identity_provider_id': client.identity_provider.id,
-                                'id': client.id, 'tooltip': client.tooltip})
+    authentications = get_authentication_uris(request, next_url)
     state = {}
     try:
         state = get_state(request)
@@ -344,9 +348,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                 code_verifier = None
 
             user = authenticate(request, client=client, code=code, redirect_uri=redirect_uri,
-                                session_state=session_state,
-                                code_verifier=code_verifier)
-
+                                session_state=session_state, code_verifier=code_verifier)
             auth_login(request, user)
 
             if request.session.test_cookie_worked():

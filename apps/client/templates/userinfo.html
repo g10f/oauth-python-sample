@@ -34,7 +34,7 @@
                 <td>
                     {% if key == 'picture' %}
                         {% if value.url %}
-                            <img src="{% if value.url %}{{ value.url }}{% else %}{{ value }}{% endif %}" width="100px"/>
+                            <img src="{% if value.url %}{{ value.url }}{% else %}{{ value }}{% endif %}" alt="{{ value }}" width="100px"/>
                         {% endif %}
                     {% elif key == 'applications' %}
                         <ul>

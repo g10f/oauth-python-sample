@@ -1,6 +1,17 @@
 {% extends "base_site.html" %}
 {% load i18n %}
 
+{% block extrascript %}
+  <script type="text/javascript">
+      if (opener) { // login in popup
+          opener.location.href = "{% url 'login' %}";
+          close();
+      } else { // login in iframe
+          // window.top.location.reload();
+      }
+  </script>
+{% endblock extrascript %}
+
 {% block title %}Client {% trans 'Login' %}{% endblock %}
 
 {% block breadcrumb %}
@@ -37,7 +48,8 @@
   {% for  authentication in authentications %}
     <div class="row mb-2">
       <div class="col">
-        <a id="{{ authentication.id }}" class="btn btn-{% if authentication.id == request.session.client_id %}danger{% else %}primary{% endif %}"
+        <a id="{{ authentication.id }}"
+           class="popup-login btn btn-{% if authentication.id == request.session.client_id %}danger{% else %}primary{% endif %}"
            href="{{ authentication.uri }}"
            data-bs-toggle="tooltip" data-bs-placement="right" title="{{ authentication.tooltip }}">
           <i class="bi bi-person"></i>  {% blocktrans with name=authentication.name %}Log in with {{ name }}{% endblocktrans %}
