@@ -88,6 +88,7 @@ AUTH_USER_MODEL = 'oauth2.User'
 SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 # SESSION_COOKIE_AGE = 60 * 10  # seconds * Minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_SAMESITE = 'None'
 
 # Additional locations of static files
 STATICFILES_DIRS = (
