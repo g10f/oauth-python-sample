@@ -49,7 +49,7 @@
     <div class="row mb-2">
       <div class="col">
         <a id="{{ authentication.id }}"
-           class="popup-login btn btn-{% if authentication.id == request.session.client_id %}danger{% else %}primary{% endif %}"
+           class="btn btn-{% if authentication.id == request.session.client_id %}danger{% else %}primary{% endif %}"
            href="{{ authentication.uri }}"
            data-bs-toggle="tooltip" data-bs-placement="right" title="{{ authentication.tooltip }}">
           <i class="bi bi-person"></i>  {% blocktrans with name=authentication.name %}Log in with {{ name }}{% endblocktrans %}
