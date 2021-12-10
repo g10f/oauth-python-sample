@@ -153,7 +153,8 @@ def refresh_access_token(access_token, user):
         'grant_type': 'refresh_token',
         'client_id': client.client_id,
         'client_secret': client.client_secret,
-        'refresh_token': refresh_token
+        'refresh_token': refresh_token,
+        'scope': client.default_scopes
     }
 
     # body = urlencode(query)
