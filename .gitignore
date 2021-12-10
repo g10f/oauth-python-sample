@@ -6,3 +6,4 @@
 logs
 temp
 node_modules
+.venv
