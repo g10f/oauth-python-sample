@@ -63,7 +63,7 @@
     </div>
   {% endblock body %}
 {% endwith %}
-{% if user.get_identity_provider.check_session_iframe %}
+{% if user.is_authenticated and user.get_identity_provider.check_session_iframe %}
   <iframe title='empty' class="hidden" id='op' src='{{ user.get_identity_provider.check_session_iframe }}'></iframe>
   <iframe title='empty' class="hidden" id='rp' src='{% url 'session' %}'></iframe>
 {% endif %}
