@@ -2,6 +2,7 @@
 import os
 
 import sys
+from http.client import HTTPConnection
 
 from django.urls import reverse_lazy
 
@@ -23,7 +24,9 @@ if DEBUG:
 
 ALWAYS_REFRESH_TOKENS = False
 
-DEBUG_REQUESTS = True
+DEBUG_REQUESTS = os.getenv('DEBUG_REQUESTS', 'INFO')
+if DEBUG_REQUESTS == 'DEBUG':
+    HTTPConnection.debuglevel = 1
 # ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
 ALLOWED_HOSTS = ['*']
 SILENCED_SYSTEM_CHECKS = ['admin.E408']
@@ -218,6 +221,11 @@ LOGGING = {
             'handlers': ['console'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
             'propagate': False,
+        },
+        'requests.packages.urllib3': {
+            'handlers': ['console'],
+            'level': os.getenv('DEBUG_REQUESTS', 'INFO'),
+            'propagate': True,
         },
         'django': {
             'handlers': ['console', 'mail_admins'],

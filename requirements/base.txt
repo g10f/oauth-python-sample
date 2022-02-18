@@ -1,0 +1,8 @@
+django<4
+gunicorn
+requests
+pillow
+psycopg2
+sorl-thumbnail
+pyjwt
+cryptography

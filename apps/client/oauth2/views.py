@@ -15,20 +15,20 @@ from django.shortcuts import render
 from django.shortcuts import resolve_url, get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
-from django.utils.encoding import force_text
-from django.utils.http import is_safe_url
+from django.utils.encoding import force_str
+from django.utils.http import is_safe_url, url_has_allowed_host_and_scheme
 from django.utils.timezone import now
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.clickjacking import xframe_options_exempt, xframe_options_sameorigin
 from django.views.generic import TemplateView
 from django.views.generic.base import RedirectView
 from jwt import InvalidTokenError
 
+from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 from .backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update, \
     decode_idp_jwt_token
 from .crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
-from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +155,7 @@ def get_oauth2_authentication_uri_from_name(request):
         else:
             client = get_object_or_404(Client, identity_provider__issuer=issuer, is_active=True, type='web')
             next_url = request.get_full_path()
-            redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL))
+            redirect_uri = request.build_absolute_uri(force_str(settings.LOGIN_URL))
             return get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri,
                                                  data={'next': next_url})
 
@@ -320,13 +320,13 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
     # The original url from the client the user  requested
     next_url = request.POST.get(redirect_field_name, request.GET.get(redirect_field_name, ''))
     # Ensure the user-originating redirection url is safe.
-    if not is_safe_url(url=next_url, allowed_hosts={request.get_host()}):
+    if not url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
         next_url = resolve_url(settings.LOGIN_REDIRECT_URL)
 
     code = request.GET.get('code')  # OAuth 2
     error = request.GET.get('error')  # OAuth 2
     error_description = request.GET.get('error_description')  # OAuth 2
-    redirect_uri = request.build_absolute_uri(force_text(settings.LOGIN_URL))
+    redirect_uri = request.build_absolute_uri(force_str(settings.LOGIN_URL))
 
     authentications = get_authentication_uris(request, next_url)
     state = {}

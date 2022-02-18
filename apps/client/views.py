@@ -6,7 +6,7 @@ from django.contrib.flatpages import models
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 logger = logging.getLogger(__name__)
 

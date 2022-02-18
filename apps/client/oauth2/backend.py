@@ -13,7 +13,6 @@ from django.utils.timezone import now
 from jwt import decode
 from jwt.algorithms import get_default_algorithms
 
-from .logging import debug_requests
 from .models import update_user, AccessToken, IdToken, RefreshToken
 from .utils import OAuth2Error
 
@@ -96,13 +95,8 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     else:
         query['client_id'] = client.client_id
 
-    if settings.DEBUG_REQUESTS:
-        with debug_requests():
-            r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
-                              verify=client.identity_provider.is_secure)
-    else:
-        r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
-                          verify=client.identity_provider.is_secure)
+    r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
+                      verify=client.identity_provider.is_secure)
 
     if r.status_code >= 400:
         raise OAuth2Error(r.text, r.status_code)

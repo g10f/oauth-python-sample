@@ -193,7 +193,7 @@ class ApiClient(models.Model):
 
 
 class Nonce(models.Model):
-    value = models.CharField(_("value"), db_index=True, max_length=12, default=get_random_string)
+    value = models.CharField(_("value"), db_index=True, max_length=12, default=partial(get_random_string, length=12))
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
 
