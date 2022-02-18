@@ -21,7 +21,7 @@ else:
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-ALWAYS_REFRESH_TOKENS = True
+ALWAYS_REFRESH_TOKENS = False
 
 DEBUG_REQUESTS = True
 # ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
