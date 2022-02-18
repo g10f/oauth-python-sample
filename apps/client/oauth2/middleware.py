@@ -1,5 +1,3 @@
-import logging
-
 from django.contrib import auth
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
@@ -11,8 +9,9 @@ from django.utils.functional import SimpleLazyObject
 from jwt import decode, InvalidTokenError
 from jwt.api_jwt import decode_complete as decode_token
 
-from client.oauth2.models import ApiClient, IdentityProvider
-from client.oauth2.views import get_oauth2_authentication_uri_from_name
+import logging
+from .models import ApiClient, IdentityProvider
+from .views import get_oauth2_authentication_uri_from_name
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +96,7 @@ class OAuthAuthenticationMiddleware(MiddlewareMixin):
 
 class LoginMiddleware(MiddlewareMixin):
     def process_request(self, request):
-        assert hasattr(request,
-                       'user'), "The Login Required middleware requires authentication middleware to be installed."
+        assert hasattr(request, 'user'), "The Login Required middleware requires authentication middleware to be installed."
 
         issuer = request.GET.get('iss', None)
         if issuer:

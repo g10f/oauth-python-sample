@@ -25,9 +25,9 @@ from django.views.generic import TemplateView
 from django.views.generic.base import RedirectView
 from jwt import InvalidTokenError
 
-from client.oauth2.backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update, \
+from .backend import get_userinfo, OAuth2Error, replace_or_add_query_param, get_access_token, url_update, \
     decode_idp_jwt_token
-from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
+from .crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
 from client.oauth2.models import Client, AccessToken, IdToken, Nonce, MAX_AGE, CodeVerifier
 
 logger = logging.getLogger(__name__)
@@ -194,15 +194,13 @@ class TokenInfoView(TemplateView):
             access_token = get_access_token(user)
             identity_provider = self.request.user.identity_provider
             try:
-                id_token = IdToken.objects.filter(user=self.request.user,
-                                                  client__identity_provider=identity_provider).latest()
+                id_token = IdToken.objects.filter(user=self.request.user, client__identity_provider=identity_provider).latest()
                 context['id_token'] = id_token.content
             except ObjectDoesNotExist as e:
                 logger.warning("id_token not found for %s", identity_provider)
 
             try:
-                option, decoded_access_token = decode_idp_jwt_token(access_token.client, access_token.token,
-                                                                    verify_aud=False)
+                option, decoded_access_token = decode_idp_jwt_token(access_token.client, access_token.token, verify_aud=False)
                 context['access_token'] = json.dumps(decoded_access_token, indent=2)
             except InvalidTokenError as e:
                 context['access_token_error'] = "access token is not a valid jwt. (%s)" % e

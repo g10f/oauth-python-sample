@@ -21,7 +21,9 @@ else:
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-DEBUG_REQUESTS = False
+ALWAYS_REFRESH_TOKENS = True
+
+DEBUG_REQUESTS = True
 # ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
 ALLOWED_HOSTS = ['*']
 SILENCED_SYSTEM_CHECKS = ['admin.E408']

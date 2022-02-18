@@ -13,9 +13,9 @@ from django.utils.timezone import now
 from jwt import decode
 from jwt.algorithms import get_default_algorithms
 
-from client.oauth2.logging import debug_requests
-from client.oauth2.models import update_user, AccessToken, IdToken, RefreshToken
-from client.oauth2.utils import OAuth2Error
+from .logging import debug_requests
+from .models import update_user, AccessToken, IdToken, RefreshToken
+from .utils import OAuth2Error
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +201,7 @@ def refresh_access_token(access_token, user):
 
 def get_access_token(user):
     access_token = AccessToken.objects.filter(user=user).latest()
-    if access_token.expires_at <= now():
+    if getattr(settings, 'ALWAYS_REFRESH_TOKENS', False) or access_token.expires_at <= now():
         if hasattr(access_token, 'refresh_token'):
             access_token = refresh_access_token(access_token, user)
         else:

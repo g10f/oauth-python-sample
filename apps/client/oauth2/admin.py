@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.utils.translation import gettext_lazy as _
 
 from client.admin import site
-from client.oauth2.models import Organisation, Role, User, AccessToken, RefreshToken, IdentityProvider, IdToken, \
+from .models import Organisation, Role, User, AccessToken, RefreshToken, IdentityProvider, IdToken, \
     Nonce, Client, ApiClient, CodeVerifier
 
 
