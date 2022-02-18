@@ -9,6 +9,6 @@ class Command(BaseCommand):
     help = "Can be run as a cronjob or directly to clean out expired tokens."
 
     def handle(self, *args, **options):
-        IdToken.objects.filter(expires_at__lt=timezone.now()).delete()
+        IdToken.objects.filter(exp__lt=timezone.now()).delete()
         AccessToken.objects.filter(expires_at__lt=timezone.now()).delete()
         Nonce.objects.filter(timestamp__lt=timezone.now() - timedelta(seconds=MAX_AGE)).delete()
