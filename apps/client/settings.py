@@ -24,14 +24,13 @@ if DEBUG:
 
 ALWAYS_REFRESH_TOKENS = False
 
-DEBUG_REQUESTS = os.getenv('DEBUG_REQUESTS', 'INFO')
-if DEBUG_REQUESTS == 'DEBUG':
-    HTTPConnection.debuglevel = 1
+REQUESTS_LOG_LEVEL = os.getenv('REQUESTS_LOG_LEVEL', 'INFO')
+if REQUESTS_LOG_LEVEL == 'DEBUG':
+    HTTPConnection.debuglevel = 2
 # ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
 ALLOWED_HOSTS = ['*']
 SILENCED_SYSTEM_CHECKS = ['admin.E408']
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
-DEBUG = os.environ.get('DEBUG', DEBUG)
 INTERNAL_IPS = ('127.0.0.1',)
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
@@ -224,7 +223,7 @@ LOGGING = {
         },
         'requests.packages.urllib3': {
             'handlers': ['console'],
-            'level': os.getenv('DEBUG_REQUESTS', 'INFO'),
+            'level': os.getenv('REQUESTS_LOG_LEVEL', 'INFO'),
             'propagate': True,
         },
         'django': {
