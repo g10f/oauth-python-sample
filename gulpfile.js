@@ -27,6 +27,7 @@ function buildMinStyles() {
 function copyJavaScriptFiles() {
     return gulp.src([
         './node_modules/bootstrap/dist/js/bootstrap.bundle.min.js',
+        './node_modules/bootstrap/dist/js/bootstrap.bundle.min.js.map',
         './node_modules/jquery/dist/jquery.min.js'])
         .pipe(gulp.dest('./apps/client/static/js/vendor'))
 }
