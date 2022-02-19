@@ -17,6 +17,7 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_str
 from django.utils.http import is_safe_url, url_has_allowed_host_and_scheme
+from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
@@ -357,8 +358,8 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             if next_url == reverse('session'):
                 return HttpResponseRedirect(next_url)
 
-            messages.success(request, _('Welcome, %(user)s, you are logged in with <strong>%(provider)s</strong>.') %
-                             {'user': user, 'provider': client.identity_provider})
+            messages.success(request, mark_safe(
+                _('Welcome, %(user)s, you are logged in with <strong>%(provider)s</strong>.') % {'user': user, 'provider': client.identity_provider}))
             # return render(request, 'login.html', context={'next': next_url, 'authentications': authentications})
             # In production you should redirect to another page, so that the url with the code and state gets not
             # requested again.

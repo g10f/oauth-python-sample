@@ -6,7 +6,7 @@ const {parallel} = require('gulp');
 const coffee = require('gulp-coffee');
 
 const config = {
-    srcCss: ['./apps/client/static/scss/main.scss'], buildCss: './apps/client/static/css'
+    srcCss: ['./apps/static/scss/main.scss'], buildCss: './apps/static/css'
 };
 
 function buildStyles() {
@@ -29,14 +29,14 @@ function copyJavaScriptFiles() {
         './node_modules/bootstrap/dist/js/bootstrap.bundle.min.js',
         './node_modules/bootstrap/dist/js/bootstrap.bundle.min.js.map',
         './node_modules/jquery/dist/jquery.min.js'])
-        .pipe(gulp.dest('./apps/client/static/js/vendor'))
+        .pipe(gulp.dest('./apps/static/js/vendor'))
 }
 
 function copyFontFiles() {
     return gulp.src([
         './node_modules/bootstrap-icons/font/*.css',
         './node_modules/bootstrap-icons/font/**//fonts/*.*',
-    ]).pipe(gulp.dest('./apps/client/static/font'))
+    ]).pipe(gulp.dest('./apps/static/font'))
 }
 
 function compileCoffee() {
@@ -44,7 +44,7 @@ function compileCoffee() {
         .pipe(sourcemaps.init())
         .pipe(coffee())
         .pipe(sourcemaps.write('.'))
-        .pipe(gulp.dest('./apps/client/static/js'));
+        .pipe(gulp.dest('./apps/static/js'));
 }
 
 exports.default = parallel(buildStyles, buildMinStyles, copyJavaScriptFiles, copyFontFiles, compileCoffee);

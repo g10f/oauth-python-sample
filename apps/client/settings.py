@@ -105,7 +105,7 @@ SESSION_COOKIE_SAMESITE = 'None' if SESSION_COOKIE_SECURE else 'Lax'
 
 # Additional locations of static files
 STATICFILES_DIRS = (
-    BASE_DIR / 'client/static',
+    BASE_DIR / 'static',
 )
 
 # List of finder classes that know how to find static files in
