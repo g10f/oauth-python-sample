@@ -1,0 +1,20 @@
+{
+  "name": "oidc test app",
+  "version": "1.0.0",
+  "description": "",
+  "author": "g10f",
+  "license": "ISC",
+  "dependencies": {
+    "bootstrap": "^5.1.3",
+    "bootstrap-icons": "^1.8.1",
+    "jquery": "^3.6.0"
+  },
+  "devDependencies": {
+    "gulp": "*",
+    "gulp-rename": "*",
+    "gulp-sass": "*",
+    "gulp-sourcemaps": "*",
+    "sass": "*",
+    "gulp-coffee": "*"
+  }
+}

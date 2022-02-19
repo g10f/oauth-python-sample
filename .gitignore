@@ -6,4 +6,5 @@
 logs
 temp
 node_modules
+htdocs
 .venv

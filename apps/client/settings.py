@@ -3,6 +3,7 @@ import os
 
 import sys
 from http.client import HTTPConnection
+from pathlib import Path
 
 from django.urls import reverse_lazy
 
@@ -32,7 +33,8 @@ ALLOWED_HOSTS = ['*']
 SILENCED_SYSTEM_CHECKS = ['admin.E408']
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 INTERNAL_IPS = ('127.0.0.1',)
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 ADMINS = (
     ('Gunnar Scherf', 'gunnar@g10f.de'),
@@ -67,10 +69,16 @@ LANGUAGES = (
     ('de', gettext('Deutsch')),
 )
 
-MEDIA_ROOT = os.path.join(BASE_DIR, '../../../static/htdocs/oauth-python-sample.g10f.de/media')
+STATIC_ROOT = os.getenv('STATIC_ROOT', BASE_DIR.parent / 'htdocs/static')
+MEDIA_ROOT = os.getenv('MEDIA_ROOT', BASE_DIR.parent / 'htdocs/media')
+
 MEDIA_URL = ''
-STATIC_ROOT = os.path.join(BASE_DIR, '../../../static/htdocs/oauth-python-sample.g10f.de/static')
 STATIC_URL = '/static/'
+
+if RUNNING_TEST:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
 
 LOGIN_URL = reverse_lazy('login')
 LOGIN_REDIRECT_URL = reverse_lazy('login')
@@ -78,7 +86,7 @@ SESSION_COOKIE_NAME = 'client_session_id'
 
 SSO = {
     'STAFF_GROUPS': ['Staff', 'Superuser'],
-    'APP_UUID': os.environ.get('SSO.APP_UUID', 'ec1e39cbe3e746c787b770ace4165d13'),
+    'APP_UUID': os.getenv('SSO.APP_UUID', 'ec1e39cbe3e746c787b770ace4165d13'),
     'APP_NAME': 'OAuth2 Test',
     'OPENID_CHECK_ROLES': False
 }
@@ -97,7 +105,7 @@ SESSION_COOKIE_SAMESITE = 'None' if SESSION_COOKIE_SECURE else 'Lax'
 
 # Additional locations of static files
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'client/static'),
+    BASE_DIR / 'client/static',
 )
 
 # List of finder classes that know how to find static files in
@@ -129,7 +137,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR, 'client/templates'),
+            BASE_DIR / 'client/templates',
         ],
         # 'APP_DIRS': True,  # must not be set if loaders is set
         'OPTIONS': {
