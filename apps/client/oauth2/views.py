@@ -16,7 +16,7 @@ from django.shortcuts import resolve_url, get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_str
-from django.utils.http import is_safe_url, url_has_allowed_host_and_scheme
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
 from django.utils.timezone import now
 from django.utils.translation import gettext as _
@@ -408,7 +408,7 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
     next_url = request.GET.get(redirect_field_name)
     redirect_to = resolve_url(settings.LOGIN_REDIRECT_URL)
     data = {}
-    if next_url and is_safe_url(url=next_url, allowed_hosts={request.get_host()}):
+    if next_url and url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
         data['next'] = next_url
 
     if request.user.is_authenticated:

@@ -23,7 +23,7 @@ else:
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-ALWAYS_REFRESH_TOKENS = False
+ALWAYS_REFRESH_TOKENS = os.getenv('ALWAYS_REFRESH_TOKENS', 'False').lower() in ('true', 'yes', '1')
 
 REQUESTS_LOG_LEVEL = os.getenv('REQUESTS_LOG_LEVEL', 'INFO')
 if REQUESTS_LOG_LEVEL == 'DEBUG':
