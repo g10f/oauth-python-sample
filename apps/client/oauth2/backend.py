@@ -118,7 +118,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
         logger.error(e)
         raise OAuth2Error('', e)
 
-    expires_in = content.get('expires_in', 3600)  # default 1 hour
+    expires_in = int(content.get('expires_in', 3600))  # default 1 hour
     access_token = AccessToken(
         client=client,
         token=content['access_token'],
