@@ -46,10 +46,10 @@ SITE_ID = 1
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'client',
-        'USER': 'client',
-        'PASSWORD': 'client',
-        'HOST': 'localhost',
+        'NAME': os.getenv('DATABASE_NAME', 'client'),
+        'USER': os.getenv('DATABASE_USER', 'client'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'client'),
+        'HOST': os.getenv('DATABASE_HOST', 'localhost'),
         'PORT': '5432',
     }}
 
@@ -76,9 +76,11 @@ MEDIA_URL = ''
 STATIC_URL = '/static/'
 
 if RUNNING_TEST:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 else:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+WHITENOISE_ROOT = os.path.join(STATIC_ROOT, 'root')
 
 LOGIN_URL = reverse_lazy('login')
 LOGIN_REDIRECT_URL = reverse_lazy('login')
@@ -158,6 +160,7 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -179,6 +182,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'django.contrib.flatpages',
     'django.contrib.admin',

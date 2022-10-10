@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  web:
+    network_mode: "host"
+    build:
+      context: .
+    ports:
+      - 8000:8000
+    volumes:
+      - media_data:/opt/g10f/sample/htdocs/media
+    environment:
+      - SSO_USE_HTTPS=False
+      - DATABASE_HOST=localhost
+      - DATABASE_PASSWORD=client
+      - DATABASE_USER=client
+      - DATABASE_NAME=client
+      - SECRET_KEY=123
+      - DJANGO_SUPERUSER_PASSWORD=admin
+      - DJANGO_SUPERUSER_USERNAME=admin
+      - DJANGO_MIGRATE=on
+      - DJANGO_CREATE_SUPERUSER=on
+      - DJANGO_LOAD_INITIAL_DATA=on
+#    depends_on:
+#      db:
+#         condition: service_healthy
+#  db:
+#      image: postgres:14.5-alpine
+#      volumes:
+#        - postgres_data:/var/lib/postgresql/data/
+#      expose:
+#        - 5432
+#      environment:
+#        - POSTGRES_USER=client
+#        - POSTGRES_PASSWORD=sso
+#        - POSTGRES_DB=sso
+#      healthcheck:
+#        test: ["CMD-SHELL", "pg_isready -U sso"]
+#        interval: 5s
+#        timeout: 5s
+#        retries: 5
+volumes:
+#  postgres_data: {}
+  media_data: {}
