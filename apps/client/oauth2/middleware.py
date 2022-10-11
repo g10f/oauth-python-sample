@@ -72,7 +72,7 @@ def get_auth_data(request):
                 if http_authorization[0] == 'Bearer':
                     access_token = http_authorization[1]
             else:
-                access_token = request.REQUEST.get('access_token')
+                access_token = request.POST.get('access_token', request.GET.get('access_token'))
             if access_token:
                 request._cached_auth_data = get_user_and_client_from_token(access_token)
 

@@ -50,7 +50,7 @@ def api_user_passes_test(test_func):
     return decorator
 
 
-@api_user_passes_test(lambda u: u.is_authenticated())
+@api_user_passes_test(lambda u: u.is_authenticated)
 def api_test(request, template="api.html"):
     try:
         flatpage = models.FlatPage.objects.get(url=reverse('api_test'))
