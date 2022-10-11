@@ -2,7 +2,7 @@
 set -exf
 
 
-if [ "x$DJANGO_MIGRATE" = 'xon' ]; then
+if [[ x$DJANGO_MIGRATE = xon ]]; then
 	./manage.py migrate --noinput
 fi
 
