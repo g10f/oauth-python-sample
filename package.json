@@ -1,11 +1,11 @@
 {
   "name": "oidc-test-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "author": "g10f",
   "license": "ISC",
   "dependencies": {
-    "bootstrap": "^5.2.0",
+    "bootstrap": "^5.2.2",
     "bootstrap-icons": "^1.9.1",
     "jquery": "^3.6.0"
   },
