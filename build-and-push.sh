@@ -1,11 +1,6 @@
 #!/bin/bash
 
-version=$(
-python <<EOF
-from apps.client import __version__
-print(__version__)
-EOF
-)
+tag=$(python apps/version.py)
 
 export DOCKER_BUILDKIT=1
 docker buildx create --use
