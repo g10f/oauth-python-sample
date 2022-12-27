@@ -54,6 +54,8 @@
           <div class="{{ containerclass }}">
             <ul>
               <li><a href="{% url 'about' %}">{% translate 'About us' %}</a></li>
+              <li class="text-muted">·</li>
+              <li>{{ version }}</li>
             </ul>
           </div>
         </footer>
