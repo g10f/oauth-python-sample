@@ -16,8 +16,8 @@ jobs:
       - name: Get Version
         id: version
         run: |
-          # set -x
-          echo "::set-output name=version::$(python apps/version.py)"
+          set -x
+          echo "VERSION=$(python apps/version.py)" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -30,7 +30,7 @@ jobs:
             g10f/oauth-python-sample
           tags: |
             type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=pep440,pattern={{version}},value=${{ steps.version.outputs.version }}
+            type=pep440,pattern={{version}},value=${{ steps.version.outputs.VERSION }}
             type=sha
 
       - name: Set up Docker Buildx
