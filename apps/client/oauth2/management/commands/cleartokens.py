@@ -1,8 +1,9 @@
 from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from ...models import IdToken, AccessToken, RefreshToken, Nonce, MAX_AGE
+from ...models import IdToken, AccessToken, Nonce, MAX_AGE
 
 
 class Command(BaseCommand):
