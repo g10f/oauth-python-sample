@@ -234,12 +234,14 @@ class Organisation(models.Model):
 
 
 class UserManager(DjangoUserManager):
-    def create_user(self, unique_name, email=None, password=None, **extra_fields):
+    def create_user(self, unique_name, email, uuid, password=None, **extra_fields):
         extra_fields.setdefault("unique_name", unique_name)
+        extra_fields.setdefault("uuid", uuid)
         return super().create_user(unique_name, email, password, **extra_fields)
 
-    def create_superuser(self, unique_name, email=None, password=None, **extra_fields):
+    def create_superuser(self, unique_name, email, uuid, password=None, **extra_fields):
         extra_fields.setdefault("unique_name", unique_name)
+        extra_fields.setdefault("uuid", uuid)
         return super().create_superuser(unique_name, email, password, **extra_fields)
 
 
