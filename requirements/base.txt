@@ -1,5 +1,6 @@
 cryptography
 django<4
+dj-database-url
 gunicorn
 pillow
 psycopg2

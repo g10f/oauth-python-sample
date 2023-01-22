@@ -5,6 +5,7 @@ import sys
 from http.client import HTTPConnection
 from pathlib import Path
 
+import dj_database_url
 from django.urls import reverse_lazy
 
 try:
@@ -28,8 +29,7 @@ ALWAYS_REFRESH_TOKENS = os.getenv('ALWAYS_REFRESH_TOKENS', 'False').lower() in (
 REQUESTS_LOG_LEVEL = os.getenv('REQUESTS_LOG_LEVEL', 'INFO')
 if REQUESTS_LOG_LEVEL == 'DEBUG':
     HTTPConnection.debuglevel = 2
-# ALLOWED_HOSTS = ['oauth-python-sample.g10f.de', 'localhost']
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['.localhost', '127.0.0.1', '[::1]'] + os.getenv('ALLOWED_HOSTS', 'oauth-python-sample.g10f.de').split(',')
 SILENCED_SYSTEM_CHECKS = ['admin.E408']
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 INTERNAL_IPS = ('127.0.0.1',)
@@ -40,18 +40,14 @@ ADMINS = (
     ('Gunnar Scherf', 'gunnar@g10f.de'),
 )
 BRAND = 'G10F+'
-ABOUT = 'http://g10f.de/'
-OPENID_SSO_SERVER_BASE_URL = 'https://sso.g10f.de/'
+ABOUT = os.getenv('ABOUT_URL', 'https://g10f.de/')
+OPENID_SSO_SERVER_BASE_URL = os.getenv('OPENID_SSO_SERVER_BASE_URL', 'https://sso.g10f.de/')
+
 SITE_ID = 1
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': os.getenv('DATABASE_NAME', 'client'),
-        'USER': os.getenv('DATABASE_USER', 'client'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'client'),
-        'HOST': os.getenv('DATABASE_HOST', 'localhost'),
-        'PORT': '5432',
-    }}
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL', "postgres://client:client@localhost:5432/client"), conn_max_age=60)
+}
 
 TIME_ZONE = 'Europe/Berlin'
 LANGUAGE_CODE = 'en-us'
@@ -192,8 +188,8 @@ INSTALLED_APPS = (
     'client',
 )
 
-DEFAULT_FROM_EMAIL = 'webmaster@g10f.de'
-SERVER_EMAIL = 'webmaster@g10f.de'
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'webmaster@g10f.de')
+SERVER_EMAIL = os.getenv('SERVER_EMAIL', 'webmaster@g10f.de')
 
 LOGGING = {
     'version': 1,
