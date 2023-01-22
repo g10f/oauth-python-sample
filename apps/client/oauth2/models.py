@@ -6,7 +6,7 @@ from datetime import datetime
 from functools import partial
 
 from django.conf import settings
-from django.contrib.auth.models import UserManager, Group, AbstractBaseUser, PermissionsMixin
+from django.contrib.auth.models import UserManager as DjangoUserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
@@ -231,6 +231,16 @@ class Organisation(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class UserManager(DjangoUserManager):
+    def create_user(self, unique_name, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("unique_name", unique_name)
+        return super().create_user(unique_name, email, password, **extra_fields)
+
+    def create_superuser(self, unique_name, email=None, password=None, **extra_fields):
+        extra_fields.setdefault("unique_name", unique_name)
+        return super().create_superuser(unique_name, email, password, **extra_fields)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
