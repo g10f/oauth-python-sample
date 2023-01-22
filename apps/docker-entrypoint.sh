@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -ef
+set -xef
 
 
 if [ "$DJANGO_MIGRATE" = "on" ]; then
@@ -12,7 +12,8 @@ if  [ "$DJANGO_CREATE_SUPERUSER" = "on" ] || [ "$DJANGO_LOAD_INITIAL_DATA" = "on
   if [[ $user_count -eq 0 ]]; then
 
     if  [ "$DJANGO_CREATE_SUPERUSER" = "on" ]; then
-      ./manage.py createsuperuser --noinput
+      echo "DJANGO_SUPERUSER_USERNAME: $DJANGO_SUPERUSER_USERNAME"
+      ./manage.py createsuperuser --noinput --username "$DJANGO_SUPERUSER_USERNAME"
     fi
 
     if [ "$DJANGO_LOAD_INITIAL_DATA" = "on" ]; then
