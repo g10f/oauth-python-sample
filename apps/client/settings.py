@@ -84,9 +84,7 @@ SESSION_COOKIE_NAME = 'client_session_id'
 
 SSO = {
     'STAFF_GROUPS': ['Staff', 'Superuser'],
-    'APP_UUID': os.getenv('SSO.APP_UUID', 'ec1e39cbe3e746c787b770ace4165d13'),
     'APP_NAME': 'OAuth2 Test',
-    'OPENID_CHECK_ROLES': False
 }
 
 AUTHENTICATION_BACKENDS = (
