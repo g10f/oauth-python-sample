@@ -12,8 +12,7 @@ if  [ "$DJANGO_CREATE_SUPERUSER" = "on" ] || [ "$DJANGO_LOAD_INITIAL_DATA" = "on
   if [[ $user_count -eq 0 ]]; then
 
     if  [ "$DJANGO_CREATE_SUPERUSER" = "on" ]; then
-      echo "DJANGO_SUPERUSER_USERNAME: $DJANGO_SUPERUSER_USERNAME"
-      ./manage.py createsuperuser --noinput --username "$DJANGO_SUPERUSER_USERNAME"
+      ./manage.py createsuperuser --noinput
     fi
 
     if [ "$DJANGO_LOAD_INITIAL_DATA" = "on" ]; then
