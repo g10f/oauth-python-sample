@@ -188,6 +188,8 @@ INSTALLED_APPS = (
 
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'webmaster@g10f.de')
 SERVER_EMAIL = os.getenv('SERVER_EMAIL', 'webmaster@g10f.de')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '25'))
 
 LOGGING = {
     'version': 1,
