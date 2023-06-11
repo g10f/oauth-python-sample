@@ -54,8 +54,11 @@ LANGUAGE_CODE = 'en-us'
 
 # SITE_ID = 1
 
-USE_I18N = True
-USE_L10N = True
+# Default in django 4.1
+# USE_I18N = True
+# USE_L10N = True
+
+# Default from django 5.0
 USE_TZ = True
 
 gettext = lambda s: s
@@ -72,9 +75,23 @@ MEDIA_URL = ''
 STATIC_URL = '/static/'
 
 if RUNNING_TEST:
-    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.InMemoryStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        },
+    }
 else:
-    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 WHITENOISE_ROOT = os.path.join(STATIC_ROOT, 'root')
 

@@ -4,6 +4,7 @@ import json
 import urllib
 from datetime import datetime
 from functools import partial
+from urllib.parse import quote
 
 from django.conf import settings
 from django.contrib.auth.models import UserManager as DjangoUserManager, Group, AbstractBaseUser, PermissionsMixin
@@ -14,7 +15,6 @@ from django.db import models
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import lazystr
-from django.utils.http import urlquote
 from django.utils.text import Truncator
 from django.utils.translation import gettext_lazy as _
 from jwt.api_jwk import PyJWK
@@ -272,7 +272,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         verbose_name_plural = _('users')
 
     def get_absolute_url(self):
-        return "/users/%s/" % urlquote(self.username)
+        return "/users/%s/" % quote(self.username)
 
     def get_full_name(self):
         """
