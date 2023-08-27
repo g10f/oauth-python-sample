@@ -12,14 +12,14 @@ const config = {
 function buildStyles() {
     return gulp.src(config.srcCss)
         .pipe(sourcemaps.init())
-        .pipe(sass().on('error', sass.logError))
+        .pipe(sass({includePaths: 'node_modules'}).on('error', sass.logError))
         .pipe(sourcemaps.write('.'))
         .pipe(gulp.dest(config.buildCss))
 }
 
 function buildMinStyles() {
     return gulp.src(config.srcCss)
-        .pipe(sass({outputStyle: 'compressed'}).on('error', sass.logError))
+        .pipe(sass({includePaths: 'node_modules', outputStyle: 'compressed'}).on('error', sass.logError))
         .pipe(rename({extname: '.min.css'}))
         .pipe(gulp.dest(config.buildCss))
 }

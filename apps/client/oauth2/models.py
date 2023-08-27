@@ -2,7 +2,7 @@ import base64
 import hashlib
 import json
 import urllib
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import partial
 from urllib.parse import quote
 
@@ -12,10 +12,10 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from django.db import models
-from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import lazystr
 from django.utils.text import Truncator
+from django.utils.timezone import make_aware, now
 from django.utils.translation import gettext_lazy as _
 from jwt.api_jwk import PyJWK
 from jwt.api_jwt import decode_complete as decode_token
@@ -259,7 +259,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                                    help_text=_('Designates whether the user can log into this admin site.'))
     is_active = models.BooleanField(_('active'), default=True, help_text=_(
         'Designates whether this user should be treated as active. Unselect this instead of deleting accounts.'))
-    date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
+    date_joined = models.DateTimeField(_('date joined'), default=now)
 
     objects = UserManager()
 
@@ -360,7 +360,7 @@ class IdToken(models.Model):
     @classmethod
     def create_from_token(cls, id_token_content, client):
         if id_token_content.get('auth_time', None):
-            auth_time = timezone.make_aware(datetime.utcfromtimestamp(id_token_content['auth_time']), timezone.utc)
+            auth_time = make_aware(datetime.utcfromtimestamp(id_token_content['auth_time']), timezone.utc)
         else:
             auth_time = None
         raw = id_token_content['raw']
@@ -371,8 +371,8 @@ class IdToken(models.Model):
         obj = cls(client=client,
                   raw=raw,
                   aud=id_token_content['aud'],
-                  exp=timezone.make_aware(datetime.utcfromtimestamp(id_token_content['exp']), timezone.utc),
-                  iat=timezone.make_aware(datetime.utcfromtimestamp(id_token_content['iat']), timezone.utc),
+                  exp=make_aware(datetime.utcfromtimestamp(id_token_content['exp']), timezone.utc),
+                  iat=make_aware(datetime.utcfromtimestamp(id_token_content['iat']), timezone.utc),
                   iss=id_token_content['iss'],
                   sub=id_token_content['sub'],
                   email=id_token_content.get('email', ''),

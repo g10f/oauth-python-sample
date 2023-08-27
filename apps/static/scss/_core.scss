@@ -209,3 +209,20 @@ footer {
     }
   }
 }
+
+// color mode button
+.theme-toggle * {
+  display: none;
+}
+
+html[data-theme="auto"] .theme-icon-when-auto {
+  display: inline-block;
+}
+
+html[data-theme="dark"] .theme-icon-when-dark {
+  display: inline-block;
+}
+
+html[data-theme="light"] .theme-icon-when-light {
+  display: inline-block;
+}
