@@ -82,7 +82,7 @@ jobs:
               ProxyCommand sh -c "aws ssm start-session --region eu-central-1 --target i-0791c2c972a049104 --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
               User ubuntu
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: |
