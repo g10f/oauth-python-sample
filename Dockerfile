@@ -1,4 +1,4 @@
-FROM python:3.11 as builder
+FROM python:3.12 as builder
 
 ENV WORKDIR=/opt/g10f/sample
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -18,7 +18,7 @@ RUN pip install -U pip wheel
 RUN pip install -r requirements.txt
 
 #####################################################
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 RUN apt-get update -y && apt-get -y install postgresql-client postgresql-client-common && apt-get clean
 

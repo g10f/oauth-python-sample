@@ -97,6 +97,10 @@ class OAuthAuthenticationMiddleware(MiddlewareMixin):
 class LoginMiddleware(MiddlewareMixin):
     def process_request(self, request):
         assert hasattr(request, 'user'), "The Login Required middleware requires authentication middleware to be installed."
+        code = request.GET.get('code', None)
+        if code:
+            # inside authorisation process
+            return None
 
         issuer = request.GET.get('iss', None)
         if issuer:
