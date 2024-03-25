@@ -21,6 +21,9 @@
     <script src="{% static "js/script.js" %}"></script>
    <script src="{% static 'js/theme.js' %}"></script>
   {% endblock script %}
+  {% if enable_plausible %}
+  <script defer data-domain="{{ domain }}" src="/js/plausible-script.js"></script>
+  {% endif %}
   {% block extrascript %}{% endblock extrascript %}
 </head>
 <body>
