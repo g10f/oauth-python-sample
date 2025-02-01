@@ -38,7 +38,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
 COPY apps .
-COPY Docker/gunicorn.conf.py ./gunicorn.conf.py
 
 RUN chown -R $USERNAME: /opt/g10f
 
