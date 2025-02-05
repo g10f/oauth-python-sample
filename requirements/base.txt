@@ -1,5 +1,5 @@
 cryptography
-django==5.1.
+django==5.1.6
 dj-database-url
 gunicorn
 pillow
