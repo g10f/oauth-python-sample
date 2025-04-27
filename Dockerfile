@@ -1,4 +1,4 @@
-FROM python:3.13-slim-bookworm
+FROM python:3.13.3-slim
 
 # Install packages needed to run your application (not build deps):
 ENV RUN_DEPS="postgresql-client"
