@@ -131,10 +131,10 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
         options, id_token_content = decode_idp_jwt_token(client, content['id_token'])
         id_token_content['raw'] = content['id_token']
         if client.roles_claim and client.roles_claim in id_token_content:
-            match type(id_token_content[client.roles_claim]):
-                case type(str()):
+            match id_token_content[client.roles_claim]:
+                case str():
                     roles = id_token_content[client.roles_claim].split()
-                case type(list()):
+                case list():
                     roles = id_token_content[client.roles_claim]
                 case _:
                     logger.warning(f"Unknown type for {client.roles_claim}: {type(id_token_content[client.roles_claim])}")
