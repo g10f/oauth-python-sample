@@ -106,7 +106,7 @@ SSO = {
     'STAFF_GROUPS': ['Staff', 'Superuser'],
     'APP_NAME': 'OAuth2 Test',
 }
-
+SUPERUSER_GROUP = os.getenv('SUPERUSER_GROUP', None)
 AUTHENTICATION_BACKENDS = (
     'client.oauth2.backend.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend'
