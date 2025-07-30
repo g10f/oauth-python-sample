@@ -103,10 +103,11 @@ LOGIN_REDIRECT_URL = reverse_lazy('login')
 SESSION_COOKIE_NAME = 'client_session_id'
 
 SSO = {
-    'STAFF_GROUPS': ['Staff', 'Superuser'],
+    'STAFF_GROUPS': os.getenv('SSO.STAFF_GROUPS', 'Staff,Superuser').split(','),
     'APP_NAME': 'OAuth2 Test',
+    'SUPERUSER_GROUP': os.getenv('SSO.SUPERUSER_GROUP', None)
 }
-SUPERUSER_GROUP = os.getenv('SUPERUSER_GROUP', None)
+
 AUTHENTICATION_BACKENDS = (
     'client.oauth2.backend.OAuth2Backend',
     'django.contrib.auth.backends.ModelBackend'
