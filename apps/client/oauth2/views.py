@@ -318,7 +318,7 @@ def get_authentication_uris(request, next_url, type='web', response_type='code')
 @never_cache
 @xframe_options_exempt
 def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
-    # The original url from the client the user  requested
+    # The original url from the client the user requested
     next_url = request.POST.get(redirect_field_name, request.GET.get(redirect_field_name, ''))
     # Ensure the user-originating redirection url is safe.
     if not url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
@@ -360,7 +360,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
             messages.success(request, mark_safe(
                 _('Welcome, %(user)s, you are logged in with <strong>%(provider)s</strong>.') % {'user': user, 'provider': client.identity_provider}))
-            # return render(request, 'login.html', context={'next': next_url, 'authentications': authentications})
+            # Return render(request, 'login.html', context={'next': next_url, 'authentications': authentications})
             # In production you should redirect to another page, so that the url with the code and state gets not
             # requested again.
             # Here for demonstration, the request from the OAuth2 provider is shown.
@@ -374,9 +374,9 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                 return HttpResponseRedirect(next_url)
 
             return render(request, 'login.html', context={'authentications': authentications})
-            # In production you can redirect to the authentication uri from the OAuth2 provider.
+            # In production, you can redirect to the authentication uri from the OAuth2 provider.
             # Here for demonstration, the authentication uri to the OAuth2 provider is shown.
-            # return HttpResponseRedirect(identity_provider_authentication_uri)
+            # Return HttpResponseRedirect(identity_provider_authentication_uri)
 
     except OAuth2Error as e:
         if e.error == 'login_required' and request.user.is_authenticated:

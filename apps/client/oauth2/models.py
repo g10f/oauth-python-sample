@@ -1,7 +1,7 @@
 import base64
 import hashlib
 import json
-import urllib
+import urllib.request
 from datetime import datetime, timezone
 from functools import partial
 from urllib.parse import quote
@@ -360,7 +360,7 @@ class IdToken(models.Model):
     @classmethod
     def create_from_token(cls, id_token_content, client):
         if id_token_content.get('auth_time', None):
-            auth_time = make_aware(datetime.utcfromtimestamp(id_token_content['auth_time']), timezone.utc)
+            auth_time = make_aware(datetime.fromtimestamp(id_token_content['auth_time']), timezone.utc)
         else:
             auth_time = None
         raw = id_token_content['raw']
@@ -371,8 +371,8 @@ class IdToken(models.Model):
         obj = cls(client=client,
                   raw=raw,
                   aud=id_token_content['aud'],
-                  exp=make_aware(datetime.utcfromtimestamp(id_token_content['exp']), timezone.utc),
-                  iat=make_aware(datetime.utcfromtimestamp(id_token_content['iat']), timezone.utc),
+                  exp=make_aware(datetime.fromtimestamp(id_token_content['exp']), timezone.utc),
+                  iat=make_aware(datetime.fromtimestamp(id_token_content['iat']), timezone.utc),
                   iss=id_token_content['iss'],
                   sub=id_token_content['sub'],
                   email=id_token_content.get('email', ''),
