@@ -418,10 +418,11 @@ def update_roles(user, roles):
     is_active = True
 
     staff_groups = settings.SSO.get('STAFF_GROUPS', [])
+    superuser_group = settings.SSO.get('SUPERUSER_GROUP', 'Superuser')
     for group in user.groups.all():
         if group.name in staff_groups:
             is_staff = True
-        if group.name == 'Superuser':
+        if group.name == superuser_group:
             is_superuser = True
             is_staff = True
             break
