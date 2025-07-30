@@ -132,9 +132,9 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
         id_token_content['raw'] = content['id_token']
         if client.roles_claim and client.roles_claim in id_token_content:
             match type(id_token_content[client.roles_claim]):
-                case str():
+                case type(str()):
                     roles = id_token_content[client.roles_claim].split()
-                case list():
+                case type(list()):
                     roles = id_token_content[client.roles_claim]
                 case _:
                     logger.warning(f"Unknown type for {client.roles_claim}: {type(id_token_content[client.roles_claim])}")
