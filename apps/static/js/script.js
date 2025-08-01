@@ -49,10 +49,13 @@ $(function() {
 		data = $.parseJSON($.base64.decode(params.state));
 		// TODO: check state has not been tampered with. (check data.nonce)   
 		// get userinfos if we have an access token
-		var userinfo_url = data.userinfo_endpoint + "?access_token=" + encodeURIComponent(params.access_token);
 		var picture_endpoint = data.picture_endpoint;
-	
-		$.get(userinfo_url, function(data) {
+
+		$.ajax({
+			url: data.userinfo_endpoint,
+			type: 'GET',
+			headers: {Authorization: 'Bearer ' + params.access_token}
+		}).done(function(data) {
 			// add the userinfos to the table with id="info_table"
 			var items = [];
 			var has_picture = false;
