@@ -124,11 +124,14 @@ def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None
         query['claims_locales'] = client.claims_locales
     if client.prompt:
         query['prompt'] = client.prompt
+    if client.kc_idp_hint:
+        query['kc_idp_hint'] = client.kc_idp_hint
 
     # PKCE
     if client.use_pkce:
         query['code_challenge'] = code_verifier.code_challenge
         query['code_challenge_method'] = code_verifier.code_challenge_method
+
 
     if prompt is not None:
         query['prompt'] = prompt

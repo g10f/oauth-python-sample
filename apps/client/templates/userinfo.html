@@ -19,9 +19,11 @@
         <div class="alert alert-danger" role="alert">{{ error|safe }}</div>
     {% endif %}
 
+    {% comment %}
     {% if userinfo_endpoint %}
         <p><a href="{{ userinfo_endpoint }}">userinfo_endpoint</a></p>
     {% endif %}
+    {% endcomment %}
 
     <table class="table table-condensed">
         <tr>

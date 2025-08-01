@@ -139,6 +139,7 @@ class Client(models.Model):
     roles_claim = models.CharField(_('name of the roles_claim'), blank=True, max_length=255)
     redirect_uri = models.CharField(_("redirect uri"), default=lazystr(settings.LOGIN_URL), blank=True,
                                     max_length=2048)
+    kc_idp_hint = models.CharField(_("Keycloak kc_idp_hint param"), blank=True, max_length=2048)
     ui_locales = models.CharField(
         _("ui locales"), blank=True, max_length=255,
         help_text=_('See http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest'))

@@ -68,7 +68,7 @@ def api_test(request, template="api.html"):
 
 
 def home(request, template="home.html"):
-    logger.info(f'HEADERS:  {request.headers}')
+    # logger.info(f'HEADERS:  {request.headers}')
     try:
         flatpage = models.FlatPage.objects.get(url=reverse('home'))
     except models.FlatPage.DoesNotExist:
