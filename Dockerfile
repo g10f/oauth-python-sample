@@ -1,4 +1,4 @@
-FROM python:3.13.5-slim
+FROM python:3.13.7-slim
 
 # Install packages needed to run your application (not build deps):
 ENV RUN_DEPS="postgresql-client"
