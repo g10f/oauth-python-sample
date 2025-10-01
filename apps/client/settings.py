@@ -105,7 +105,7 @@ SESSION_COOKIE_NAME = 'client_session_id'
 SSO = {
     'STAFF_GROUPS': os.getenv('SSO.STAFF_GROUPS', 'Staff,Superuser').split(','),
     'APP_NAME': 'OAuth2 Test',
-    'SUPERUSER_GROUP': os.getenv('SSO.SUPERUSER_GROUP', None)
+    'SUPERUSER_GROUP': os.getenv('SSO.SUPERUSER_GROUP', 'Superuser')
 }
 
 AUTHENTICATION_BACKENDS = (
