@@ -10,10 +10,7 @@ services:
       - media_data:/opt/g10f/sample/htdocs/media
     environment:
       - SSO_USE_HTTPS=False
-      - DATABASE_HOST=localhost
-      - DATABASE_PASSWORD=client
-      - DATABASE_USER=client
-      - DATABASE_NAME=client
+      - DATABASE_URL=postgres://client:client@localhost:5432/client
       - SECRET_KEY=123
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_USERNAME=admin
