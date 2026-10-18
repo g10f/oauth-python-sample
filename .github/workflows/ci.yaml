@@ -1,35 +1,41 @@
 name: ci
 
+# A release is a pushed tag X.Y.Z, e.g. git tag -a 2.4.4 -m "release 2.4.4" && git push --follow-tags
 on:
   push:
-    branches:
-      - 'main'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+env:
+  IMAGE: ghcr.io/g10f/oauth-python-sample
+
 jobs:
-  build-and-push-image:
-    runs-on: ubuntu-22.04
+  # Each platform is built natively on its own runner, without QEMU emulation. The images are pushed
+  # without tag (by digest) and combined into one multi-platform image in the merge job.
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
+      - name: Prepare
+        run: echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> $GITHUB_ENV  # linux/arm64 -> linux-arm64
+        env:
+          PLATFORM: ${{ matrix.platform }}
+
       - name: Checkout
         uses: actions/checkout@v7
-
-      - name: Get Version
-        id: version
-        run: |
-          set -x
-          echo "VERSION=$(python apps/version.py)" >> $GITHUB_OUTPUT
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
 
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: |
-            ghcr.io/g10f/oauth-python-sample
+          images: ${{ env.IMAGE }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', 'master') }}
-            type=pep440,pattern={{version}},value=${{ steps.version.outputs.VERSION }}
-            type=sha
+            type=semver,pattern={{version}}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -41,16 +47,74 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push by digest
+        id: build
         uses: docker/build-push-action@v7
         with:
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+          cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,scope=${{ env.PLATFORM_PAIR }},mode=max
+
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          # the version is the git tag; latest is set automatically for the highest version
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
+
   deploy:
-    needs: build-and-push-image
+    needs: merge
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
