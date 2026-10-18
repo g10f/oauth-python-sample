@@ -66,11 +66,11 @@ Or with docker compose (uses the database on the host):
 
     docker compose up --build
 
-The CSS is built from `apps/static/scss` with gulp, which also copies Bootstrap, jQuery and the
-Bootstrap icons from `node_modules` to `apps/static`:
+The CSS is built from `apps/static/scss` with Sass. The build also copies Bootstrap, jQuery and the
+Bootstrap icons from `node_modules` to `apps/static`. The results are committed.
 
     npm install
-    npx gulp
+    npm run build
 
 Release
 -------

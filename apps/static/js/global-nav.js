@@ -87,4 +87,3 @@
 
 }).call(this);
 
-//# sourceMappingURL=global-nav.js.map

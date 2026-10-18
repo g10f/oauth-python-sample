@@ -35,4 +35,3 @@
 
 }).call(this);
 
-//# sourceMappingURL=openid-configuration.js.map
