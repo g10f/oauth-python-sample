@@ -154,7 +154,9 @@ jobs:
           cache: pip
       - run: |
           pip install -r requirements.txt
-          ansible-playbook deploy.yml -D -l g10f-oidc-demo -t update
+          ansible-playbook deploy.yml -D -l g10f-oidc-demo -t update -e version="$VERSION"
         env:
+          # deploy exactly the image of this release instead of the version in the inventory (latest)
+          VERSION: ${{ github.ref_name }}
           ANSIBLE_VAULT_IDENTITY_LIST: vault-password-file.sh
           ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
