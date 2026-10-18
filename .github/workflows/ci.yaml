@@ -1,6 +1,6 @@
 name: ci
 
-# A release is a pushed tag X.Y.Z, e.g. git tag -a 2.4.4 -m "release 2.4.4" && git push --follow-tags
+# A release is a pushed tag X.Y.Z, created with git release (see README)
 on:
   push:
     tags:
@@ -29,6 +29,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      - name: Check Version
+        run: |
+          VERSION=$(sed -n "s/^__version__ = '\(.*\)'$/\1/p" apps/client/__init__.py)
+          if [ "$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match __version__ $VERSION"
+            exit 1
+          fi
+
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v6
@@ -54,8 +62,6 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
-          build-args: |
-            VERSION=${{ steps.meta.outputs.version }}
           cache-from: type=gha,scope=${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,scope=${{ env.PLATFORM_PAIR }},mode=max
 
@@ -99,7 +105,7 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.IMAGE }}
-          # the version is the git tag; latest is set automatically for the highest version
+          # the tag is checked against __version__ in the build job; latest is set automatically for the highest version
           tags: |
             type=semver,pattern={{version}}
             type=sha

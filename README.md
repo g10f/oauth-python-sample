@@ -39,7 +39,6 @@ Environment variables:
 | `EMAIL_HOST`, `EMAIL_PORT`                | `localhost`, `25`                                | mail server for error mails                  |
 | `DEFAULT_FROM_EMAIL`, `SERVER_EMAIL`      | `webmaster@g10f.de`                              | sender of mails                              |
 | `ROOT_LOG_LEVEL`, `DJANGO_LOG_LEVEL`, `REQUESTS_LOG_LEVEL` | `INFO`                          | log levels                                   |
-| `VERSION`                                 | `dev`                                            | version shown in the footer, set by the CI   |
 
 The entrypoint of the image evaluates:
 
@@ -74,10 +73,12 @@ Bootstrap icons from `node_modules` to `apps/static`. The results are committed.
 
 Release
 -------
-The version is the git tag. A release is a pushed tag `X.Y.Z`:
+A release is a git tag `X.Y.Z`. It is created with `git release` (a small release script):
 
-    git tag -a 2.4.4 -m "release 2.4.4"
-    git push --follow-tags origin main
+    git release patch        # or minor, major, X.Y.Z
+
+It writes the new version to `apps/client/__init__.py`, commits it as `release X.Y.Z`,
+creates the tag and pushes both. The CI checks that the tag matches `__version__`.
 
 The CI builds the image `ghcr.io/g10f/oauth-python-sample:X.Y.Z` (and `latest`) natively for amd64
 and arm64 and deploys it. A push without a tag does not start the CI.

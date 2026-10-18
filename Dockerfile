@@ -48,9 +48,6 @@ USER $USERNAME
 ARG SECRET_KEY=dummy
 RUN ./manage.py collectstatic
 
-# release version, set by the CI from the git tag
-ARG VERSION=dev
-ENV VERSION=$VERSION
 ENTRYPOINT ["./docker-entrypoint.sh"]
 # Start gunicorn
 CMD ["gunicorn", "client.wsgi:application", "-b", "0.0.0.0:8000", "--forwarded-allow-ips", "*"]
