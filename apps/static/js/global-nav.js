@@ -74,7 +74,7 @@
         }
         $('#user_apps').html(items.join(''));
         if (data.picture_30x30) {
-          thumbnail = `<img class=\"dwbn-icon-user\" width=\"30\" height=\"30\" alt=\"\" src=\"${data.picture_30x30.href}\">`;
+          thumbnail = `<img class=\"g10f-icon-user\" width=\"30\" height=\"30\" alt=\"\" src=\"${data.picture_30x30.href}\">`;
         } else {
           thumbnail = "<i class=\"glyphicon glyphicon-user\"></i>";
         }
