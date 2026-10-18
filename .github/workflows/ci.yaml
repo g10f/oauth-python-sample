@@ -116,6 +116,10 @@ jobs:
   deploy:
     needs: merge
     runs-on: ubuntu-latest
+    # one deploy of the host at a time, a second one waits until the first is finished
+    concurrency:
+      group: deploy-g10f-oidc-demo
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
         with:
@@ -147,6 +151,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
+          cache: pip
       - run: |
           pip install -r requirements.txt
           ansible-playbook deploy.yml -D -l g10f-oidc-demo -t update
