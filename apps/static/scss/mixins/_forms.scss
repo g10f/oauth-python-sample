@@ -1,8 +1,14 @@
-// This mixin uses an `if()` technique to be compatible with Dart Sass
-// See https://github.com/sass/sass/issues/1873#issuecomment-152293725 for more details
+// Inside a selector the state class is attached to the parent (&.has-error),
+// at the root level it stands alone (.has-error).
 @mixin g10f-form-validation-state-selector($state) {
-  #{if(&, "&", "")}.has-#{$state} {
-    @content;
+  @if & {
+    &.has-#{$state} {
+      @content;
+    }
+  } @else {
+    .has-#{$state} {
+      @content;
+    }
   }
 }
 
