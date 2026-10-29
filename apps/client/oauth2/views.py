@@ -16,6 +16,7 @@ from django.shortcuts import resolve_url, get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_str
+from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
 from django.utils.timezone import now
@@ -361,8 +362,11 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
             if next_url == reverse('session'):
                 return HttpResponseRedirect(next_url)
 
+            # The user name comes from the identity provider and can be chosen by the user, so it is escaped
+            # before it is put into the html message.
             messages.success(request, mark_safe(
-                _('Welcome, %(user)s, you are logged in with <strong>%(provider)s</strong>.') % {'user': user, 'provider': client.identity_provider}))
+                _('Welcome, %(user)s, you are logged in with <strong>%(provider)s</strong>.') % {
+                    'user': escape(user), 'provider': escape(client.identity_provider)}))
             # Return render(request, 'login.html', context={'next': next_url, 'authentications': authentications})
             # In production you should redirect to another page, so that the url with the code and state gets not
             # requested again.
