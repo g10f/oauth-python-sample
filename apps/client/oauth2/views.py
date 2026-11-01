@@ -16,6 +16,7 @@ from django.shortcuts import resolve_url, get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_str
+from django.utils.crypto import constant_time_compare, get_random_string
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
@@ -54,6 +55,22 @@ def update_url(url, params):
     return urlunsplit((scheme, netloc, path, new_query_string, fragment))
 
 
+STATE_BINDING_SESSION_KEY = 'oauth2_state_binding'
+
+
+def get_state_binding(request):
+    """
+    Random value in the session of this browser, which is added to every state. A state is only accepted from the
+    browser it was created for (CSRF protection of the redirection endpoint, RFC 6749 section 10.12). Without it,
+    an attacker could send a victim a link with his own code and state and log the victim in with his account.
+    """
+    binding = request.session.get(STATE_BINDING_SESSION_KEY)
+    if binding is None:
+        binding = get_random_string(32)
+        request.session[STATE_BINDING_SESSION_KEY] = binding
+    return binding
+
+
 def get_state(request, max_age=MAX_AGE):
     state = request.GET.get('state')
     if state is None:
@@ -63,11 +80,34 @@ def get_state(request, max_age=MAX_AGE):
     except Exception as e:
         raise OAuth2Error("State '%s' can't be load in to JSON. '%s'" % (state, e), 'invalid_state')
 
+    # The state comes from the request and is not signed, so nothing about its structure can be assumed.
+    if not isinstance(data, dict):
+        raise OAuth2Error("The state is not a JSON object.", 'invalid_state')
+
+    session_binding = request.session.get(STATE_BINDING_SESSION_KEY)
+    state_binding = data.get('binding')
+    if not session_binding or not isinstance(state_binding, str) or \
+            not constant_time_compare(state_binding, session_binding):
+        raise OAuth2Error("The state was not created for this browser session.", 'invalid_state')
+
+    # The state is not signed, so the next url is checked again here and not only when the state is created.
+    next_url = data.get('next')
+    if next_url is not None:
+        if not isinstance(next_url, str) or \
+                not url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
+            data['next'] = resolve_url(settings.LOGIN_REDIRECT_URL)
+
+    # Nonce values are alphanumeric. Anything else, like a nul byte, must not reach the database query.
+    nonce_value = data.get('nonce')
+    client_id = data.get('client')
+    if not isinstance(nonce_value, str) or not nonce_value.isalnum() or not isinstance(client_id, int):
+        raise OAuth2Error("The state has no valid nonce.", 'invalid_state')
+
     try:
-        nonce = Nonce.objects.filter(value=data.get('nonce'), client=data.get('client')).latest()
+        nonce = Nonce.objects.filter(value=nonce_value, client=client_id).latest()
         # delete the nonce if used once
         nonce.delete()
-    except ObjectDoesNotExist:
+    except (ObjectDoesNotExist, OverflowError):
         raise OAuth2Error("Nonce %s for provider %s not found." % (data.get('nonce'), data.get('provider')),
                           'invalid_state')
 
@@ -79,21 +119,22 @@ def get_state(request, max_age=MAX_AGE):
     return data
 
 
-def build_state(client, code_verifier, data=None):
+def build_state(request, client, code_verifier, data=None):
     """
     data can be a dict with additional information
     """
     if data is None:
         data = {}
     nonce = Nonce.objects.create(client=client)
-    data.update({'nonce': nonce.value, 'client': client.id})
+    data.update({'nonce': nonce.value, 'client': client.id, 'binding': get_state_binding(request)})
     if code_verifier:
         data['code_verifier'] = code_verifier.id
 
     return _urlsafe_b64encode(_json_encode(data).encode('ascii'))
 
 
-def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None, prompt=None, id_token_hint=None):
+def get_oauth2_authentication_uri(request, client, response_type, redirect_uri, data=None, prompt=None,
+                                  id_token_hint=None):
     if data is None:
         data = {}
     data['client_id'] = client.id
@@ -107,7 +148,7 @@ def get_oauth2_authentication_uri(client, response_type, redirect_uri, data=None
     query = {
         'nonce': Nonce.objects.create(client=client).value,
         'client_id': client.client_id,
-        'state': build_state(client, code_verifier, data),
+        'state': build_state(request, client, code_verifier, data),
         'response_type': response_type,
         'redirect_uri': redirect_uri
     }
@@ -161,7 +202,7 @@ def get_oauth2_authentication_uri_from_name(request):
             client = get_object_or_404(Client, identity_provider__issuer=issuer, is_active=True, type='web')
             next_url = request.get_full_path()
             redirect_uri = request.build_absolute_uri(force_str(settings.LOGIN_URL))
-            return get_oauth2_authentication_uri(client, response_type='code', redirect_uri=redirect_uri,
+            return get_oauth2_authentication_uri(request, client, response_type='code', redirect_uri=redirect_uri,
                                                  data={'next': next_url})
 
     return None
@@ -262,6 +303,11 @@ class UserInfoView(TemplateView):
 
 
 class InstalledLoginView(TemplateView):
+    """
+    Login of a native client with the out-of-band redirect uri. This view is not routed. The user copies the code by
+    hand, so the code never comes back through get_state and the browser binding of the state doesn't protect this
+    flow. Native clients should use a loopback redirect uri instead (RFC 8252).
+    """
     template_name = "installed_login.html"
 
     def get_context_data(self, **kwargs):
@@ -269,7 +315,8 @@ class InstalledLoginView(TemplateView):
 
         authentications = []
         for client in Client.objects.filter(identity_provider__is_active=True, type='native', is_active=True):
-            uri = get_oauth2_authentication_uri(client, response_type='code', redirect_uri='urn:ietf:wg:oauth:2.0:oob')
+            uri = get_oauth2_authentication_uri(self.request, client, response_type='code',
+                                                redirect_uri='urn:ietf:wg:oauth:2.0:oob')
             authentications.append({'name': client.identity_provider.name, 'uri': uri})
 
         context['authentications'] = authentications
@@ -292,8 +339,8 @@ class UserInfoClientView(TemplateView):
                 'userinfo_endpoint': client.identity_provider.userinfo_endpoint,
                 'picture_endpoint': client.identity_provider.picture_endpoint
             }
-            uri = get_oauth2_authentication_uri(client, response_type='id_token token', redirect_uri=redirect_uri,
-                                                data=data)
+            uri = get_oauth2_authentication_uri(self.request, client, response_type='id_token token',
+                                                redirect_uri=redirect_uri, data=data)
             authentications.append({'name': client.identity_provider.name, 'uri': uri, 'client_id': client.client_id})
 
         context['authentications'] = authentications
@@ -311,7 +358,7 @@ def get_authentication_uris(request, next_url, type='web', response_type='code')
             except IdToken.DoesNotExist:
                 pass
 
-        uri = get_oauth2_authentication_uri(client, response_type=response_type,
+        uri = get_oauth2_authentication_uri(request, client, response_type=response_type,
                                             redirect_uri=client.get_redirect_uri(request),
                                             data={'next': next_url}, id_token_hint=id_token_hint)
         authentications.append({'name': client, 'uri': uri, 'identity_provider_id': client.identity_provider.id,
@@ -342,11 +389,17 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                 raise OAuth2Error(error_description, error, state=state)
             # oauth2 session management
             session_state = request.GET.get('session_state', '')
-            next_url = state['next']
+            # A code without a state was not requested by this browser. An empty get_state result means no state.
+            if not state:
+                raise OAuth2Error("The authorization response has no state.", 'invalid_state')
+            next_url = state.get('next') or resolve_url(settings.LOGIN_REDIRECT_URL)
 
             client = Client.objects.get(id=state['client'])
             if client.use_pkce:
-                code_verifier = CodeVerifier.objects.get(id=state['code_verifier'])
+                try:
+                    code_verifier = CodeVerifier.objects.get(id=state.get('code_verifier'))
+                except (ObjectDoesNotExist, ValueError, TypeError, OverflowError):
+                    raise OAuth2Error("The state has no valid code verifier.", 'invalid_state')
             else:
                 code_verifier = None
 
@@ -356,7 +409,7 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
 
             if request.session.test_cookie_worked():
                 request.session.delete_test_cookie()
-            request.session['client_id'] = state['client_id']
+            request.session['client_id'] = client.id
 
             # oauth2 session management
             if next_url == reverse('session'):
@@ -427,7 +480,7 @@ def logout(request, redirect_field_name=REDIRECT_FIELD_NAME):
             id_token = None
         auth_logout(request)
         if identity_provider and id_token:
-            state = build_state(id_token.client, code_verifier=None, data=data)
+            state = build_state(request, id_token.client, code_verifier=None, data=data)
             post_logout_redirect_uri = request.build_absolute_uri(resolve_url(settings.LOGIN_REDIRECT_URL))
             params = {'post_logout_redirect_uri': post_logout_redirect_uri,
                       'state': state}
