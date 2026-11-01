@@ -39,6 +39,7 @@ Environment variables:
 | `EMAIL_HOST`, `EMAIL_PORT`                | `localhost`, `25`                                | mail server for error mails                  |
 | `DEFAULT_FROM_EMAIL`, `SERVER_EMAIL`      | `webmaster@g10f.de`                              | sender of mails                              |
 | `ROOT_LOG_LEVEL`, `DJANGO_LOG_LEVEL`, `REQUESTS_LOG_LEVEL` | `INFO`                          | log levels                                   |
+| `STATIC_ROOT`, `MEDIA_ROOT`               | `htdocs/static`, `htdocs/media`                  | directories for static and uploaded files    |
 
 The entrypoint of the image evaluates:
 
@@ -48,7 +49,24 @@ The entrypoint of the image evaluates:
 | `DJANGO_CREATE_SUPERUSER=on` | creates a superuser (`DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD`) if there are no users |
 | `DJANGO_LOAD_INITIAL_DATA=on` | loads the fixture `initial_data` if there are no users          |
 
-`DEBUG` is on only with `manage.py runserver`.
+`DEBUG` is on only with `manage.py runserver`. With every other command the session cookie is marked as
+secure, so the login needs https there.
+
+Security
+--------
+As a template this client follows RFC 9700 and OpenID Connect Core:
+
+- The `state` is bound to the browser session, can be used once and expires after 10 minutes. A login that
+  was started in one browser can't be finished in another one.
+- The `nonce` of the ID token is checked. The identity provider must repeat it, otherwise the login is rejected.
+- ID tokens and API access tokens are verified with the keys from the `jwks_uri` of the identity provider.
+  Without a `jwks_uri` the signature of an ID token is not checked, it only comes directly over TLS.
+- PKCE is used for clients with `use_pkce`.
+- Unsetting `is_secure` of an identity provider turns off the TLS verification of all requests to it, also
+  for its signing keys. That is only meant for development.
+
+Not implemented: the `iss` of the ID token is not compared with the identity provider, and the JavaScript page
+`/oauth2/userinfo/client/` doesn't check the `nonce`.
 
 Development
 -----------
@@ -62,7 +80,7 @@ A PostgreSQL database with user, password and database `client` on localhost is 
     ../.venv/bin/python manage.py loaddata initial_data
     ../.venv/bin/python manage.py runserver
 
-Or with docker compose (uses the database on the host):
+Or with docker compose (uses the database on the host, see the note on https above):
 
     SECRET_KEY=$(openssl rand -hex 32) docker compose up --build
 
