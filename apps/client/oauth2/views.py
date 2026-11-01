@@ -3,6 +3,7 @@ import logging
 from datetime import timedelta
 from urllib.parse import urlsplit, urlunsplit, urlparse, urlunparse
 
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME, login as auth_login, logout as auth_logout, authenticate
@@ -16,7 +17,7 @@ from django.shortcuts import resolve_url, get_object_or_404
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_str
-from django.utils.crypto import constant_time_compare, get_random_string
+from django.utils.crypto import constant_time_compare, get_random_string, salted_hmac
 from django.utils.html import escape
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.safestring import mark_safe
@@ -71,6 +72,30 @@ def get_state_binding(request):
     return binding
 
 
+def get_id_token_nonce(request, nonce_value):
+    """
+    The nonce of the authentication request, which the identity provider repeats in the id token. It is a hash of the
+    state nonce and the binding of this browser session (OpenID Connect Core 15.5.2), so an id token that was issued
+    for another browser can't match, even with a copied state. The binding is no secret, it is also part of the state.
+    The protection comes from the signed session cookie: nobody can put the binding of another browser in his session.
+    """
+    return salted_hmac('client.oauth2.id_token_nonce', nonce_value, secret=get_state_binding(request),
+                       algorithm='sha256').hexdigest()
+
+
+def get_request_error_message(exception):
+    """
+    The error text for a failed request to the identity provider. The message of the exception is neither logged nor
+    shown, because it contains the url and some identity providers get the access token in the url. The host and the
+    type are enough to find a wrong configuration.
+    """
+    request = exception.request
+    url = request.url if request and request.url else ''
+    host = urlsplit(url).hostname or 'the identity provider'
+    logger.warning('The request to %s failed: %s', host, type(exception).__name__)
+    return "The identity provider can't be reached, please try again later."
+
+
 def get_state(request, max_age=MAX_AGE):
     state = request.GET.get('state')
     if state is None:
@@ -119,13 +144,14 @@ def get_state(request, max_age=MAX_AGE):
     return data
 
 
-def build_state(request, client, code_verifier, data=None):
+def build_state(request, client, code_verifier, data=None, nonce=None):
     """
     data can be a dict with additional information
     """
     if data is None:
         data = {}
-    nonce = Nonce.objects.create(client=client)
+    if nonce is None:
+        nonce = Nonce.objects.create(client=client)
     data.update({'nonce': nonce.value, 'client': client.id, 'binding': get_state_binding(request)})
     if code_verifier:
         data['code_verifier'] = code_verifier.id
@@ -145,10 +171,11 @@ def get_oauth2_authentication_uri(request, client, response_type, redirect_uri, 
     else:
         code_verifier = None
 
+    nonce = Nonce.objects.create(client=client)
     query = {
-        'nonce': Nonce.objects.create(client=client).value,
+        'nonce': get_id_token_nonce(request, nonce.value),
         'client_id': client.client_id,
-        'state': build_state(request, client, code_verifier, data),
+        'state': build_state(request, client, code_verifier, data, nonce),
         'response_type': response_type,
         'redirect_uri': redirect_uri
     }
@@ -254,6 +281,8 @@ class TokenInfoView(TemplateView):
             try:
                 userinfo = get_userinfo(access_token=access_token, uuid=kwargs.get('uuid'))
                 context['userinfo'] = json.dumps(userinfo, indent=2)
+            except requests.RequestException as e:
+                context['userinfo_error'] = get_request_error_message(e)
             except Exception as e:
                 context['userinfo_error'] = str(e)
                 logger.info(e)
@@ -288,6 +317,8 @@ class UserInfoView(TemplateView):
             context['userinfo'] = userinfo
             context['userinfo_endpoint'] = userinfo_endpoint
 
+        except requests.RequestException as e:
+            context['error'] = get_request_error_message(e)
         except Exception as e:
             context['error'] = str(e)
 
@@ -404,7 +435,8 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                 code_verifier = None
 
             user = authenticate(request, client=client, code=code, redirect_uri=redirect_uri,
-                                session_state=session_state, code_verifier=code_verifier)
+                                session_state=session_state, code_verifier=code_verifier,
+                                nonce=get_id_token_nonce(request, state['nonce']))
             auth_login(request, user)
 
             if request.session.test_cookie_worked():
@@ -458,6 +490,11 @@ def login(request, redirect_field_name=REDIRECT_FIELD_NAME):
                 return HttpResponseRedirect(redirect_to)
 
         return render(request, 'oauth2/error.html', context={'error': e})
+
+    except requests.RequestException as e:
+        # An unavailable identity provider is no error of this application.
+        error = OAuth2Error(get_request_error_message(e), 'temporarily_unavailable')
+        return render(request, 'oauth2/error.html', context={'error': error})
 
 
 @never_cache

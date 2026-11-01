@@ -1,11 +1,11 @@
 import base64
 import hashlib
 import json
-import urllib.request
 from datetime import datetime, timezone
 from functools import partial
 from urllib.parse import quote
 
+import requests
 from django.conf import settings
 from django.contrib.auth.models import UserManager as DjangoUserManager, Group, AbstractBaseUser, PermissionsMixin
 from django.core.cache import cache
@@ -17,10 +17,11 @@ from django.utils.functional import lazystr
 from django.utils.text import Truncator
 from django.utils.timezone import make_aware, now
 from django.utils.translation import gettext_lazy as _
+from jwt import PyJWTError
 from jwt.api_jwk import PyJWK
 from jwt.api_jwt import decode_complete as decode_token
 
-from .utils import OAuth2Error
+from .utils import OAuth2Error, REQUEST_TIMEOUT
 
 MAX_AGE = 600
 
@@ -79,20 +80,29 @@ class IdentityProvider(models.Model):
         verbose_name_plural = _('Identity Providers')
 
     def _get_jwks_from_kid(self, kid):
-        # find signing key by kid and cache the data
-        cache_key = f'signing_key_from_jwt_{kid}'
+        # find signing key by kid and cache the data, kid values are only unique per identity provider
+        # the kid comes from an unverified token, the hash keeps invalid characters out of the cache key
+        kid_hash = hashlib.sha256(str(kid).encode()).hexdigest()
+        cache_key = f'signing_key_from_jwt_{self.pk}_{kid_hash}'
         signing_key = cache.get(cache_key)
         if signing_key is None:
-            with urllib.request.urlopen(self.jwks_uri) as response:
-                data = json.load(response)
+            response = requests.get(self.jwks_uri, verify=self.is_secure, timeout=REQUEST_TIMEOUT)
+            response.raise_for_status()
+            data = response.json()
+
+            # A broken response is an error of the identity provider, which the login shows on its error page.
+            keys = data.get('keys') if isinstance(data, dict) else None
+            if not isinstance(keys, list):
+                raise OAuth2Error('The JWKS response of the identity provider has no list of keys.', 'signing_error')
 
             signing_key = None
-            for item in data['keys']:
-                if item.get('kid') == kid and item.get('use') == 'sig':
+            for item in keys:
+                if isinstance(item, dict) and item.get('kid') == kid and item.get('use') == 'sig':
                     signing_key = item
                     break
             if signing_key is None:
-                raise OAuth2Error(f'Unable to find a signing key that matches: "{kid}"', 'signing_error')
+                # The kid comes from an unverified token and is logged, repr keeps line breaks out of the log.
+                raise OAuth2Error(f'Unable to find a signing key that matches: {kid!r}', 'signing_error')
 
             cache.add(cache_key, signing_key)
             return cache.get(cache_key)
@@ -100,7 +110,10 @@ class IdentityProvider(models.Model):
             return signing_key
 
     def get_signing_key_from_kid(self, kid):
-        return PyJWK.from_dict(self._get_jwks_from_kid(kid))
+        try:
+            return PyJWK.from_dict(self._get_jwks_from_kid(kid))
+        except (PyJWTError, NotImplementedError) as e:  # NotImplementedError: a key with the algorithm "none"
+            raise OAuth2Error(f"The signing key of the identity provider can't be used: {e}", 'signing_error')
 
     def get_signing_key_from_jwt(self, token):
         unverified = decode_token(token, options={"verify_signature": False})

@@ -16,7 +16,7 @@
     <h1>{% trans 'User Information from Web App Log in' %}</h1>
 
     {% if error %}
-        <div class="alert alert-danger" role="alert">{{ error|safe }}</div>
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
     {% endif %}
 
     {% comment %}
@@ -41,7 +41,10 @@
                     {% elif key == 'applications' %}
                         <ul>
                             {% for uuid, app in value.items %}
-                                <li><a href="{{ app.links.app.href }}">{{ app.links.app.title }}</a></li>
+                                {% with href=app.links.app.href %}
+                                    {# The link comes from the identity provider, a javascript: url must not be clickable. #}
+                                    <li>{% if href|slice:"7" == 'http://' or href|slice:"8" == 'https://' %}<a href="{{ href }}">{{ app.links.app.title }}</a>{% else %}{{ app.links.app.title }}{% endif %}</li>
+                                {% endwith %}
                             {% endfor %}
                         </ul>
                     {% elif value|slice:"7" == 'http://' or value|slice:"8" == 'https://' %}

@@ -1,3 +1,7 @@
+# Seconds to wait for the identity provider, without a limit a hanging provider would block the workers.
+REQUEST_TIMEOUT = 10
+
+
 class OAuth2Error(Exception):
     error = {'error': None}
 

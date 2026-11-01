@@ -8,12 +8,13 @@ from django.conf import settings
 from django.contrib.auth.backends import ModelBackend
 from django.http import QueryDict
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 from django.utils.timezone import now
 from jwt import decode
 from jwt.algorithms import get_default_algorithms
 
 from .models import update_user, AccessToken, IdToken, RefreshToken
-from .utils import OAuth2Error
+from .utils import OAuth2Error, REQUEST_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,26 @@ def url_update(url, param_dict):
     return urlunsplit((scheme, netloc, path, query, fragment))
 
 
+def replace_me_in_path(url, uuid):
+    """Replace the path segment 'me' and nothing else, a 'me' can also be part of the host name.
+
+    >>> replace_me_in_path('https://me.example.com/users/me/', '123')
+    'https://me.example.com/users/123/'
+
+    """
+    (scheme, netloc, path, query, fragment) = urlsplit(url)
+    path = '/'.join(uuid if segment == 'me' else segment for segment in path.split('/'))
+    return urlunsplit((scheme, netloc, path, query, fragment))
+
+
+def verify_id_token_nonce(id_token_content, nonce):
+    # OpenID Connect Core 3.1.3.7: if a nonce was sent in the authentication request, the claim must be present and
+    # match. This detects an id token that was issued for another browser session.
+    token_nonce = id_token_content.get('nonce')
+    if not isinstance(token_nonce, str) or not constant_time_compare(token_nonce, nonce):
+        raise OAuth2Error("The nonce of the id token does not match the authentication request.", 'invalid_nonce')
+
+
 def decode_idp_jwt_token(client, token, **kwargs):
     # Don't need to verify with certs, because we got the id_token directly from the id_provider via ssl
     options = {
@@ -79,7 +100,7 @@ def decode_idp_jwt_token(client, token, **kwargs):
     return options, token_content
 
 
-def get_tokens_from_code(client, code, code_verifier, redirect_uri):
+def get_tokens_from_code(client, code, code_verifier, redirect_uri, nonce):
     headers = {'content-type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'}
     query = {
         'grant_type': 'authorization_code',
@@ -95,7 +116,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
         query['client_id'] = client.client_id
 
     r = requests.post(client.identity_provider.token_endpoint, data=query, headers=headers,
-                      verify=client.identity_provider.is_secure)
+                      verify=client.identity_provider.is_secure, timeout=REQUEST_TIMEOUT)
 
     if r.status_code >= 400:
         raise OAuth2Error(r.text, r.status_code)
@@ -128,6 +149,7 @@ def get_tokens_from_code(client, code, code_verifier, redirect_uri):
     id_token_content = None
     if 'id_token' in content:
         options, id_token_content = decode_idp_jwt_token(client, content['id_token'])
+        verify_id_token_nonce(id_token_content, nonce)
         id_token_content['raw'] = content['id_token']
         if client.roles_claim and client.roles_claim in id_token_content:
             match id_token_content[client.roles_claim]:
@@ -161,7 +183,8 @@ def refresh_access_token(access_token, user):
     # body = urlencode(query)
     r = requests.post(client.identity_provider.token_endpoint, data=query,
                       headers={'content-type': 'application/x-www-form-urlencoded',
-                               'Accept': 'application/json'})
+                               'Accept': 'application/json'},
+                      timeout=REQUEST_TIMEOUT)
     if r.status_code >= 400:
         raise OAuth2Error(r.text, r.status_code)
 
@@ -220,7 +243,7 @@ def get_userinfo(access_token, uuid=None):
         raise OAuth2Error("no userinfo endpoint configured", "no_userinfo_endpoint")
 
     if uuid:
-        userinfo_endpoint = userinfo_endpoint.replace('me', uuid)
+        userinfo_endpoint = replace_me_in_path(userinfo_endpoint, uuid)
 
     # with microsoft deflate, zlib.decompress gives an error "unknown compression" ?
     headers = {'accept': 'application/json',
@@ -232,18 +255,19 @@ def get_userinfo(access_token, uuid=None):
     else:
         headers['authorization'] = '%s %s' % (access_token.type, access_token.token)
 
-    r = requests.get(userinfo_endpoint, headers=headers, verify=identity_provider.is_secure)
+    r = requests.get(userinfo_endpoint, headers=headers, verify=identity_provider.is_secure, timeout=REQUEST_TIMEOUT)
 
     return r.json()
 
 
 class OAuth2Backend(ModelBackend):
     def authenticate(self, request, client=None, code=None, redirect_uri=None, session_state=None, code_verifier=None,
-                     **kwargs):
+                     nonce=None, **kwargs):
         if not code:
             return None
 
-        access_token, id_token_content, refresh_token = get_tokens_from_code(client, code, code_verifier, redirect_uri)
+        access_token, id_token_content, refresh_token = get_tokens_from_code(client, code, code_verifier, redirect_uri,
+                                                                             nonce)
         """
         You can use the OpenID Connect id_token which contains the userid and email
         or make another request (GET ../userinfo/ ) to get the userinfos 

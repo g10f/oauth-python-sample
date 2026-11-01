@@ -7,7 +7,7 @@ services:
     ports:
       - 8000:8000
     volumes:
-      - media_data:/opt/g10f/sample/htdocs/media
+      - media_data:/opt/g10f/htdocs/media
     environment:
       - SSO_USE_HTTPS=False
       - DATABASE_URL=postgres://client:client@localhost:5432/client

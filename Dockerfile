@@ -14,7 +14,6 @@ ENV VIRTUAL_ENV=$WORKDIR/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 WORKDIR $WORKDIR
-RUN chown -R $USERNAME: $WORKDIR
 
 # psycopg-c is compiled against libpq. Compiling takes long, so it is installed in its own layer,
 # which stays cached when the requirements change.
@@ -42,10 +41,11 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 COPY apps .
 
-RUN chown -R $USERNAME: /opt/g10f
+# Code and venv belong to root, the worker only writes the media and static files.
+RUN mkdir -p /opt/g10f/htdocs/media /opt/g10f/htdocs/static \
+    && chown -R $USERNAME: /opt/g10f/htdocs
 
 USER $USERNAME
-ARG SECRET_KEY=dummy
 RUN ./manage.py collectstatic
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

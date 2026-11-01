@@ -6,11 +6,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponseRedirect
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
-from jwt import decode, InvalidTokenError
+from jwt import decode, InvalidIssuerError, PyJWTError
 from jwt.api_jwt import decode_complete as decode_token
 
 import logging
+import requests
 from .models import ApiClient, IdentityProvider
+from .utils import OAuth2Error
 from .views import get_oauth2_authentication_uri_from_name
 
 logger = logging.getLogger(__name__)
@@ -20,11 +22,16 @@ def verify_signed_jwt(jwt):
     decoded = decode_token(jwt, options={"verify_signature": False})
     payload = decoded["payload"]
     issuer = payload['iss']
-    audiance = payload['aud']  # this is the id of a client of our api
+    # The token is not verified yet, so the issuer is untrusted. A nul byte must not reach the database query.
+    if not isinstance(issuer, str) or '\x00' in issuer:
+        raise InvalidIssuerError('The token has an invalid issuer.')
+    audience = payload['aud']  # this is the id of a client of our api
     kid = decoded['header'].get('kid')
     idp = IdentityProvider.objects.get(issuer=issuer)
     key = idp.get_signing_key_from_kid(kid)
-    payload = decode(jwt, key=key, audiance=audiance, options={'verify_signature': True})
+    # Only the algorithm of the key of the identity provider is accepted, the alg header of the token is not trusted.
+    payload = decode(jwt, key=key, audience=audience, algorithms=[key.algorithm_name],
+                     options={'verify_signature': True, 'require': ['exp', 'iss', 'sub', 'aud']})
     return payload, idp
 
 
@@ -40,14 +47,17 @@ def get_user_and_client_from_token(access_token):
         if not access_token:
             return AnonymousUser(), None, set()
         data, idp = verify_signed_jwt(access_token)
+        # First the client: a token for another client of the identity provider must not create a user.
+        client = ApiClient.objects.get(identity_provider=idp, client_id=data['aud'], is_active=True)
         defaults = {'unique_name': "%s.%s" % (idp, data['sub'])}
         user = get_user_model().objects.get_or_create(uuid=data['sub'], identity_provider=idp, defaults=defaults)[0]
-        client = ApiClient.objects.get(identity_provider=idp, client_id=data['aud'], is_active=True)
         scopes = set()
         if data.get('scope'):
             scopes = set(data['scope'].split())
-    except (ObjectDoesNotExist, signing.BadSignature, ValueError, InvalidTokenError) as e:
-        logger.exception(e)
+    except (ObjectDoesNotExist, signing.BadSignature, ValueError, KeyError, PyJWTError, OAuth2Error,
+            requests.RequestException) as e:
+        # An invalid token comes from the request and is no server error.
+        logger.warning('The access token was rejected: %s', e)
         return AnonymousUser(), None, set()
     return user, client, scopes
 

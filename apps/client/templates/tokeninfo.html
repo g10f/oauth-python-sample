@@ -21,12 +21,12 @@
     {% endif %}
 
     {% if error %}
-        <div class="alert alert-danger" role="alert">{{ error|safe }}</div>
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
     {% endif %}
 
     <h2>{% trans 'access token' %}</h2>
     {% if access_token_error %}
-        <div class="alert alert-danger" role="alert">{{ access_token_error|safe }}</div>
+        <div class="alert alert-danger" role="alert">{{ access_token_error }}</div>
     {% endif %}
     {% if access_token %}
         <pre><code>{{ access_token }}</code></pre>
@@ -37,12 +37,14 @@
         <pre><code>{{ id_token }}</code></pre>
     {% endif %}
 
-    {% if userinfo %}
+    {% if userinfo or userinfo_error %}
         <h2>{% trans 'userinfo' %}</h2>
         {% if userinfo_error %}
-            <div class="alert alert-danger" role="alert">{{ userinfo_error|safe }}</div>
+            <div class="alert alert-danger" role="alert">{{ userinfo_error }}</div>
         {% endif %}
-        <pre><code>{{ userinfo }}</code></pre>
+        {% if userinfo %}
+            <pre><code>{{ userinfo }}</code></pre>
+        {% endif %}
     {% endif %}
 
 {% endblock right_content %}
