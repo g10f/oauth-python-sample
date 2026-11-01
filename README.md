@@ -28,7 +28,7 @@ Environment variables:
 | Variable                                  | Default                                          | Description                                  |
 |-------------------------------------------|--------------------------------------------------|----------------------------------------------|
 | `DATABASE_URL`                            | `postgres://client:client@localhost:5432/client` | PostgreSQL database                          |
-| `SECRET_KEY`                              | fixed development key                            | Django secret key, set it in production      |
+| `SECRET_KEY`                              | none, required except for `runserver` and `test` | Django secret key, signs the session cookies, the app does not start without it |
 | `ALLOWED_HOSTS`                           | `oauth-python-sample.g10f.de`                    | comma separated list, localhost is always allowed |
 | `OPENID_SSO_SERVER_BASE_URL`              | `https://sso.g10f.de/`                           | base URL of the identity provider            |
 | `ALWAYS_REFRESH_TOKENS`                   | `False`                                          | refresh the tokens on every request          |
@@ -56,6 +56,7 @@ A PostgreSQL database with user, password and database `client` on localhost is 
 
     python3 -m venv .venv
     .venv/bin/pip install -r requirements.txt
+    export SECRET_KEY=$(openssl rand -hex 32)
     cd apps
     ../.venv/bin/python manage.py migrate
     ../.venv/bin/python manage.py loaddata initial_data
@@ -63,7 +64,7 @@ A PostgreSQL database with user, password and database `client` on localhost is 
 
 Or with docker compose (uses the database on the host):
 
-    docker compose up --build
+    SECRET_KEY=$(openssl rand -hex 32) docker compose up --build
 
 The CSS is built from `apps/static/scss` with Sass. The build also copies Bootstrap, jQuery and the
 Bootstrap icons from `node_modules` to `apps/static`. The results are committed.

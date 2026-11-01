@@ -6,6 +6,7 @@ from http.client import HTTPConnection
 from pathlib import Path
 
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse_lazy
 
 try:
@@ -13,7 +14,8 @@ try:
 except:
     RUNNING_DEVSERVER = False
 
-RUNNING_TEST = 'test' in sys.argv
+# Only the command itself counts: a "test" anywhere in the arguments of gunicorn must not select the development key.
+RUNNING_TEST = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
 if RUNNING_DEVSERVER:
     INTERNAL_IPS = ('127.0.0.1',)
@@ -133,8 +135,15 @@ STATICFILES_FINDERS = [
     # 'django.contrib.staticfiles.finders.DefaultStorageFinder',
 ]
 
-# Make this unique, and don't share it with anybody.
-SECRET_KEY = os.environ.get('SECRET_KEY', '&amp;9w&amp;vwpc7uahoddb0e+^oyh#v@=hjemup0zb0t^8a++!r1lypp')
+# The sessions are signed cookies, so whoever knows this key can forge a session, also one of an admin. That is why
+# only the development server and the tests have a default, everything else refuses to start without a key.
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if RUNNING_DEVSERVER or RUNNING_TEST:
+        SECRET_KEY = 'insecure-key-for-development-only'
+    else:
+        raise ImproperlyConfigured(
+            'The environment variable SECRET_KEY must be set, you can generate a value with: openssl rand -hex 32')
 
 if DEBUG:
     # don't use cached loader
