@@ -63,16 +63,7 @@ def get_user_and_client_from_token(access_token):
 
 
 def get_auth_data(request):
-    """
-    Look for
-    
-    1. Authorization Header if path starts with /api/
-    2. access_token Parameter if path starts with /api/
-    3. Standard django session_id
-    
-    for authentication information
-    
-    """
+    """Authentication from the Authorization header or the access_token parameter below /api/, otherwise the session."""
     if not hasattr(request, '_cached_auth_data'):
         if request.path.find('/api/') != -1:
             access_token = None

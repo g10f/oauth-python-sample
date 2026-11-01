@@ -1,9 +1,3 @@
-"""
-This file demonstrates writing tests using the unittest module. These will pass
-when you run "manage.py test".
-
-Replace this with more appropriate tests for your application.
-"""
 import json
 import time
 import warnings
@@ -53,8 +47,8 @@ class OAuth2Tests(TestCase):
 
 def create_identity_provider(name='Test IdP', **kwargs):
     return IdentityProvider.objects.create(
-        name=name, issuer=f'https://{slugify(name)}.example.com', authorization_endpoint='https://idp.example.com/auth',
-        token_endpoint='https://idp.example.com/token', **kwargs)
+        name=name, issuer=f'https://{slugify(name)}.example.com',
+        authorization_endpoint='https://idp.example.com/auth', token_endpoint='https://idp.example.com/token', **kwargs)
 
 
 def token_response(content):
@@ -101,12 +95,10 @@ class IdTokenNonceTests(TestCase):
                 self.assertNotIn('_auth_user_id', self.client.session)
 
     def test_id_token_of_another_browser_session_is_rejected(self):
-        # The attacker injects the code of the victim into his own session and copies the unsigned state values.
-        victim_state, victim_nonce = self.start_login(TestClient())
-        attacker_state, attacker_nonce = self.start_login(self.client)
-        victim_state_nonce = json.loads(_urlsafe_b64decode(victim_state).decode('utf-8'))['nonce']
-        state = change_state(attacker_state, nonce=victim_state_nonce)
-        response = self.callback(self.client, state, victim_nonce)
+        # The attacker injects the code of the victim into his own session, with a state of his own session.
+        _, victim_nonce = self.start_login(TestClient())
+        attacker_state, _ = self.start_login(self.client)
+        response = self.callback(self.client, attacker_state, victim_nonce)
         self.assertContains(response, 'invalid_nonce')
         self.assertNotIn('_auth_user_id', self.client.session)
 
@@ -117,7 +109,8 @@ class IdTokenNonceTests(TestCase):
     def test_login_without_id_token_needs_no_nonce(self):
         state, nonce = self.start_login(self.client)
         userinfo = {'sub': 'user-1', 'name': 'Test User'}
-        with mock.patch('client.oauth2.backend.requests.post', return_value=token_response({'access_token': 'token'})), \
+        response = token_response({'access_token': 'token'})
+        with mock.patch('client.oauth2.backend.requests.post', return_value=response), \
                 mock.patch('client.oauth2.backend.get_userinfo', return_value=userinfo), \
                 mock.patch('client.oauth2.backend.update_user', return_value=get_user_model().objects.create(
                     username='user', unique_name='user')):
@@ -199,6 +192,7 @@ class IdentityProviderRequestTests(TestCase):
             get_userinfo(access_token)
         for call in post.call_args_list + get.call_args_list:
             self.assertIsNotNone(call.kwargs['timeout'])
+            self.assertIn('verify', call.kwargs)
 
     def test_unreachable_identity_provider_shows_an_error_page(self):
         Client.objects.create(identity_provider=create_identity_provider(), client_id='test-client')
@@ -342,10 +336,7 @@ class ErrorOutputTests(TestCase):
 class RefreshTokenTests(TestCase):
 
     def test_tokens_are_not_logged(self):
-        identity_provider = IdentityProvider.objects.create(
-            name='Test IdP', issuer='https://idp.example.com', authorization_endpoint='https://idp.example.com/auth',
-            token_endpoint='https://idp.example.com/token')
-        client = Client.objects.create(identity_provider=identity_provider, client_id='test-client')
+        client = Client.objects.create(identity_provider=create_identity_provider(), client_id='test-client')
         user = get_user_model().objects.create(username='user')
         access_token = AccessToken.objects.create(client=client, user=user, token='old-access-token',
                                                   expires_at=now())
@@ -373,9 +364,7 @@ class StateTests(TestCase):
     """
 
     def setUp(self):
-        self.identity_provider = IdentityProvider.objects.create(
-            name='Test IdP', issuer='https://idp.example.com', authorization_endpoint='https://idp.example.com/auth',
-            token_endpoint='https://idp.example.com/token')
+        self.identity_provider = create_identity_provider()
         self.oauth2_client = Client.objects.create(identity_provider=self.identity_provider, client_id='test-client')
 
     def get_state(self, browser):
@@ -407,6 +396,24 @@ class StateTests(TestCase):
         state = self.get_state(attacker)
         self.get_state(self.client)  # the victim has a session with its own binding
         response = self.callback(self.client, state)
+        self.assertContains(response, 'invalid_state')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_session_binding_does_not_leave_the_session(self):
+        uri = self.client.get(reverse('login')).context['authentications'][0]['uri']
+        session_binding = self.client.session['oauth2_state_binding']
+        query = parse_qs(urlsplit(uri).query)
+        state = json.loads(_urlsafe_b64decode(query['state'][0]).decode('utf-8'))
+        self.assertNotIn(session_binding, uri)
+        self.assertNotIn(session_binding, json.dumps(state))
+        self.assertNotEqual(state['binding'], query['nonce'][0])
+
+    def test_leaked_state_does_not_help_to_attack_the_victim(self):
+        # The attacker knows an older state of the victim and takes a new nonce from his own login page.
+        leaked_state = self.get_state(self.client)
+        attacker_state = self.get_state(TestClient())
+        attacker_nonce = json.loads(_urlsafe_b64decode(attacker_state).decode('utf-8'))['nonce']
+        response = self.callback(self.client, change_state(leaked_state, nonce=attacker_nonce))
         self.assertContains(response, 'invalid_state')
         self.assertNotIn('_auth_user_id', self.client.session)
 
@@ -456,6 +463,16 @@ class StateTests(TestCase):
             with self.subTest(data=data):
                 response = self.callback(self.client, encode_state(data))
                 self.assertContains(response, 'invalid_state')
+
+    def test_state_with_lone_surrogates_is_rejected(self):
+        for field in ('binding', 'next', 'other'):
+            for query in ({}, {'code': 'code'}):
+                with self.subTest(field=field, query=query):
+                    data = json.loads(_urlsafe_b64decode(self.get_state(self.client)).decode('utf-8'))
+                    data[field] = '/\ud800'
+                    state = _urlsafe_b64encode(json.dumps(data).encode('ascii')).decode('ascii')
+                    response = self.client.get(reverse('login'), {'state': state, **query})
+                    self.assertContains(response, 'invalid_state')
 
     def test_state_with_invalid_nonce_or_client_is_rejected(self):
         invalid_values = ({'nonce': ['x']}, {'nonce': 'a\x00b'}, {'nonce': 5}, {'nonce': None},

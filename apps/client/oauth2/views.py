@@ -61,9 +61,8 @@ STATE_BINDING_SESSION_KEY = 'oauth2_state_binding'
 
 def get_state_binding(request):
     """
-    Random value in the session of this browser, which is added to every state. A state is only accepted from the
-    browser it was created for (CSRF protection of the redirection endpoint, RFC 6749 section 10.12). Without it,
-    an attacker could send a victim a link with his own code and state and log the victim in with his account.
+    Random value of this browser session, a state is only valid with it (RFC 6749 section 10.12).
+    It must stay in the session: state and nonce travel in urls and only contain hashes of it.
     """
     binding = request.session.get(STATE_BINDING_SESSION_KEY)
     if binding is None:
@@ -72,23 +71,23 @@ def get_state_binding(request):
     return binding
 
 
-def get_id_token_nonce(request, nonce_value):
-    """
-    The nonce of the authentication request, which the identity provider repeats in the id token. It is a hash of the
-    state nonce and the binding of this browser session (OpenID Connect Core 15.5.2), so an id token that was issued
-    for another browser can't match, even with a copied state. The binding is no secret, it is also part of the state.
-    The protection comes from the signed session cookie: nobody can put the binding of another browser in his session.
-    """
-    return salted_hmac('client.oauth2.id_token_nonce', nonce_value, secret=get_state_binding(request),
+def get_session_hash(request, purpose, nonce_value):
+    """Hash of the state nonce with the session binding. The purpose keeps one value from revealing another."""
+    return salted_hmac(f'client.oauth2.{purpose}', nonce_value, secret=get_state_binding(request),
                        algorithm='sha256').hexdigest()
 
 
+def get_state_binding_hash(request, nonce_value):
+    return get_session_hash(request, 'state_binding', nonce_value)
+
+
+def get_id_token_nonce(request, nonce_value):
+    """The nonce the identity provider repeats in the id token, bound to this browser (OIDC Core 15.5.2)."""
+    return get_session_hash(request, 'id_token_nonce', nonce_value)
+
+
 def get_request_error_message(exception):
-    """
-    The error text for a failed request to the identity provider. The message of the exception is neither logged nor
-    shown, because it contains the url and some identity providers get the access token in the url. The host and the
-    type are enough to find a wrong configuration.
-    """
+    """Error text for a failed identity provider request, without the exception message: its url can hold the token."""
     request = exception.request
     url = request.url if request and request.url else ''
     host = urlsplit(url).hostname or 'the identity provider'
@@ -102,6 +101,8 @@ def get_state(request, max_age=MAX_AGE):
         return {}
     try:
         data = json.loads(_urlsafe_b64decode(state).decode('utf-8'))
+        # JSON escapes can hold lone surrogates, which would fail later in the comparison and the redirect.
+        json.dumps(data, ensure_ascii=False).encode('utf-8')
     except Exception as e:
         raise OAuth2Error("State '%s' can't be load in to JSON. '%s'" % (state, e), 'invalid_state')
 
@@ -109,10 +110,15 @@ def get_state(request, max_age=MAX_AGE):
     if not isinstance(data, dict):
         raise OAuth2Error("The state is not a JSON object.", 'invalid_state')
 
-    session_binding = request.session.get(STATE_BINDING_SESSION_KEY)
+    # Nonce values are alphanumeric. Anything else, like a nul byte, must not reach the database query.
+    nonce_value = data.get('nonce')
+    client_id = data.get('client')
+    if not isinstance(nonce_value, str) or not nonce_value.isalnum() or not isinstance(client_id, int):
+        raise OAuth2Error("The state has no valid nonce.", 'invalid_state')
+
     state_binding = data.get('binding')
-    if not session_binding or not isinstance(state_binding, str) or \
-            not constant_time_compare(state_binding, session_binding):
+    if STATE_BINDING_SESSION_KEY not in request.session or not isinstance(state_binding, str) or \
+            not constant_time_compare(state_binding, get_state_binding_hash(request, nonce_value)):
         raise OAuth2Error("The state was not created for this browser session.", 'invalid_state')
 
     # The state is not signed, so the next url is checked again here and not only when the state is created.
@@ -121,12 +127,6 @@ def get_state(request, max_age=MAX_AGE):
         if not isinstance(next_url, str) or \
                 not url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
             data['next'] = resolve_url(settings.LOGIN_REDIRECT_URL)
-
-    # Nonce values are alphanumeric. Anything else, like a nul byte, must not reach the database query.
-    nonce_value = data.get('nonce')
-    client_id = data.get('client')
-    if not isinstance(nonce_value, str) or not nonce_value.isalnum() or not isinstance(client_id, int):
-        raise OAuth2Error("The state has no valid nonce.", 'invalid_state')
 
     try:
         nonce = Nonce.objects.filter(value=nonce_value, client=client_id).latest()
@@ -152,7 +152,7 @@ def build_state(request, client, code_verifier, data=None, nonce=None):
         data = {}
     if nonce is None:
         nonce = Nonce.objects.create(client=client)
-    data.update({'nonce': nonce.value, 'client': client.id, 'binding': get_state_binding(request)})
+    data.update({'nonce': nonce.value, 'client': client.id, 'binding': get_state_binding_hash(request, nonce.value)})
     if code_verifier:
         data['code_verifier'] = code_verifier.id
 
@@ -335,9 +335,8 @@ class UserInfoView(TemplateView):
 
 class InstalledLoginView(TemplateView):
     """
-    Login of a native client with the out-of-band redirect uri. This view is not routed. The user copies the code by
-    hand, so the code never comes back through get_state and the browser binding of the state doesn't protect this
-    flow. Native clients should use a loopback redirect uri instead (RFC 8252).
+    Login of a native client with the out-of-band redirect uri, not routed. The code never reaches get_state, so the
+    browser binding doesn't protect this flow. Native clients should use a loopback redirect uri (RFC 8252).
     """
     template_name = "installed_login.html"
 

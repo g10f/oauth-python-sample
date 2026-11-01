@@ -184,7 +184,7 @@ def refresh_access_token(access_token, user):
     r = requests.post(client.identity_provider.token_endpoint, data=query,
                       headers={'content-type': 'application/x-www-form-urlencoded',
                                'Accept': 'application/json'},
-                      timeout=REQUEST_TIMEOUT)
+                      verify=client.identity_provider.is_secure, timeout=REQUEST_TIMEOUT)
     if r.status_code >= 400:
         raise OAuth2Error(r.text, r.status_code)
 
