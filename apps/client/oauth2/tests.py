@@ -9,12 +9,14 @@ import time
 from unittest import mock
 from urllib.parse import urlsplit, parse_qs
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase, Client as TestClient
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 
+from client.oauth2.backend import refresh_access_token
 from client.oauth2.crypt import _json_encode, _urlsafe_b64encode, _urlsafe_b64decode
-from client.oauth2.models import IdentityProvider, Client, AccessToken
+from client.oauth2.models import IdentityProvider, Client, AccessToken, RefreshToken
 
 
 def get_state_from_uri(uri):
@@ -37,6 +39,33 @@ class OAuth2Tests(TestCase):
         response = self.client.get(reverse('login') + "?error=testerror")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "testerror")
+
+
+class RefreshTokenTests(TestCase):
+
+    def test_tokens_are_not_logged(self):
+        identity_provider = IdentityProvider.objects.create(
+            name='Test IdP', issuer='https://idp.example.com', authorization_endpoint='https://idp.example.com/auth',
+            token_endpoint='https://idp.example.com/token')
+        client = Client.objects.create(identity_provider=identity_provider, client_id='test-client')
+        user = get_user_model().objects.create(username='user')
+        access_token = AccessToken.objects.create(client=client, user=user, token='old-access-token',
+                                                  expires_at=now())
+        RefreshToken.objects.create(access_token=access_token, token='old-refresh-token')
+
+        response = mock.Mock(status_code=200, headers={'content-type': 'application/json'})
+        response.json.return_value = {'access_token': 'new-access-token', 'refresh_token': 'new-refresh-token',
+                                      'id_token': 'new-id-token', 'expires_in': 3600, 'scope': 'openid'}
+        with mock.patch('client.oauth2.backend.requests.post', return_value=response):
+            with self.assertLogs('client.oauth2.backend', level='DEBUG') as logs:
+                new_access_token = refresh_access_token(access_token, user)
+
+        self.assertEqual(new_access_token.token, 'new-access-token')
+        output = '\n'.join(logs.output)
+        self.assertIn('expires_in=3600', output)
+        self.assertNotIn('new-access-token', output)
+        self.assertNotIn('new-refresh-token', output)
+        self.assertNotIn('new-id-token', output)
 
 
 class StateTests(TestCase):

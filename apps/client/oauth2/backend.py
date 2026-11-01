@@ -1,4 +1,3 @@
-import json
 import logging
 from base64 import b64encode
 from json import JSONDecodeError
@@ -174,7 +173,9 @@ def refresh_access_token(access_token, user):
         else:
             content = r.json()
 
-        logger.info(json.dumps(content, indent=4, sort_keys=True))
+        # Never log the content itself, it holds the tokens.
+        logger.debug('Refreshed the access token: expires_in=%s, scope=%s', content.get('expires_in'),
+                     content.get('scope'))
         if content.get('error'):
             message = content.get('error_description')
             error = content.get('error')
