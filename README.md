@@ -100,4 +100,6 @@ It writes the new version to `apps/client/__init__.py`, commits it as `release X
 creates the tag and pushes both. The CI checks that the tag matches `__version__`.
 
 The CI builds the image `ghcr.io/g10f/oauth-python-sample:X.Y.Z` (and `latest`) natively for amd64
-and arm64 and deploys it. A push without a tag does not start the CI.
+and arm64 and starts the deploy: if the secret `DEPLOY_WORKFLOW` (`owner/repo/workflow-file`) is set, it starts that
+workflow with the inputs `image` and `version`, using the secret `DEPLOY_TOKEN`. Without it, e.g. in a fork,
+nothing is deployed. A push without a tag does not start the CI.
