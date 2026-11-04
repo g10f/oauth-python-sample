@@ -1,54 +1,52 @@
-FROM python:3.14.7-slim
+# Build stage: compiles the Python packages into /venv. Only psycopg-c is built from source,
+# the other packages come as wheels with their libraries included.
+FROM python:3.14.10-slim AS build
 
-# Install packages needed to run your application (not build deps):
-ENV RUN_DEPS="postgresql-client"
-ENV BUILD_DEPS="build-essential libpq-dev"
 RUN set -ex \
-    && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS \
+    && apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-ENV WORKDIR=/opt/g10f/sample
+COPY requirements/base.txt /requirements.txt
+RUN python3 -m venv /venv \
+    && /venv/bin/pip install --no-cache-dir -r /requirements.txt
+
+
+FROM python:3.14.10-slim
+
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV VIRTUAL_ENV=$WORKDIR/venv
+ENV VIRTUAL_ENV=/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-WORKDIR $WORKDIR
-
-# psycopg-c is compiled against libpq. Compiling takes long, so it is installed in its own layer,
-# which stays cached when the requirements change.
+# Runtime packages: libpq5 for psycopg, postgresql-client for working in the container
 RUN set -ex \
-    && apt-get update && apt-get install -y --no-install-recommends $BUILD_DEPS \
-    && python3 -m venv ${VIRTUAL_ENV} \
-    && pip install -U pip wheel \
-    && pip install --no-cache-dir "psycopg[c]" \
-    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $BUILD_DEPS \
+    && apt-get update && apt-get install -y --no-install-recommends libpq5 postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-COPY requirements requirements
-RUN pip install --no-cache-dir -r requirements.txt
+COPY --from=build /venv /venv
 
 ARG USERNAME=worker
+ARG PROJ_NAME=oauth-python-sample
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
-# required to run collectstatic
-ARG SECRET_KEY=dummy
 
 # Create the user
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
+RUN groupadd --gid $USER_GID $USERNAME && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME
 
+# The venv and the code belong to root. The user only writes the media files and, with collectstatic,
+# the static files (the settings put htdocs next to the apps directory).
+RUN mkdir -p /opt/g10f/$PROJ_NAME/htdocs/media /opt/g10f/$PROJ_NAME/htdocs/static \
+    && chown $USERNAME:$USERNAME /opt/g10f/$PROJ_NAME/htdocs/media /opt/g10f/$PROJ_NAME/htdocs/static
+
+WORKDIR /opt/g10f/$PROJ_NAME/apps
 COPY apps .
 
-# Code and venv belong to root, the worker only writes the media and static files.
-RUN mkdir -p /opt/g10f/htdocs/media /opt/g10f/htdocs/static \
-    && chown -R $USERNAME: /opt/g10f/htdocs
-
 USER $USERNAME
-RUN ./manage.py collectstatic
+# The settings refuse to start without SECRET_KEY; collectstatic doesn't use it, so a dummy value is enough.
+RUN SECRET_KEY=collectstatic-only ./manage.py collectstatic --noinput
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
+
 # Start gunicorn
 CMD ["gunicorn", "client.wsgi:application", "-b", "0.0.0.0:8000", "--forwarded-allow-ips", "*"]
 EXPOSE 8000

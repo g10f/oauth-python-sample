@@ -73,12 +73,19 @@ Development
 A PostgreSQL database with user, password and database `client` on localhost is required.
 
     python3 -m venv .venv
-    .venv/bin/pip install -r requirements.txt
+    .venv/bin/pip install -r requirements/dev.txt
     export SECRET_KEY=$(openssl rand -hex 32)
     cd apps
     ../.venv/bin/python manage.py migrate
     ../.venv/bin/python manage.py loaddata initial_data
     ../.venv/bin/python manage.py runserver
+
+The Python packages are pinned in `requirements/base.txt` (installed in the Docker image) and `requirements/dev.txt`
+(the same versions plus pip-tools), generated from `base.in` and `dev.in`. After changing a `.in` file, run from the
+repo root (psycopg-c is compiled, so `libpq-dev` is needed for the local install):
+
+    pip-compile requirements/base.in
+    pip-compile requirements/dev.in
 
 Or with docker compose (uses the database on the host, see the note on https above):
 
