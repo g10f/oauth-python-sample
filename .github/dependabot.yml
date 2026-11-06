@@ -25,7 +25,7 @@ updates:
           - "minor"
           - "patch"
     ignore:
-      # the sample stays on Django 5.2 LTS, like sso; a new major version is switched to deliberately
+      # Django stays on the current LTS release; the switch to the next LTS is done deliberately
       - dependency-name: "django"
         update-types:
           - "version-update:semver-major"
